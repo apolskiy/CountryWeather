@@ -1,0 +1,10 @@
+Ini, TOML
+[MASTER]
+ignore=tests/conftest.py
+
+[MESSAGES CONTROL]
+# Disable some strict conventions if necessary, but keep the documentation ones active
+enable=C0114,C0115,C0116
+
+[FORMAT]
+max-line-length=100

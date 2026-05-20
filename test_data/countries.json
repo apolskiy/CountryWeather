@@ -1,0 +1,7 @@
+[
+  {"name": "germany",   "cca2": "DE", "region": "Europe"},
+  {"name": "japan",     "cca2": "JP", "region": "Asia"},
+  {"name": "brazil",    "cca2": "BR", "region": "Americas"},
+  {"name": "nigeria",   "cca2": "NG", "region": "Africa"},
+  {"name": "australia", "cca2": "AU", "region": "Oceania"}
+]
