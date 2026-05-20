@@ -1,0 +1,14 @@
+# Test framework
+pytest==9.0.2
+
+# Reporting
+allure-pytest==2.16.0
+allure-python-commons==2.16.0
+pytest-html==4.2.0
+pytest-metadata==3.1.1
+
+# HTTP client
+requests==2.32.5
+
+# Configuration parsing
+PyYAML==6.0.3
