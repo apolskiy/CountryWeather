@@ -13,6 +13,18 @@ utils/:
 Original Claude prompt:
 "Using the rules defined in .claude/rules/framework-rules.md, generate the config/environments.yaml file. Ensure the schema strictly matches the requirements: two environments ('countries', 'weather') with base_urls, max_response_time, and min_results_count. No other values should be added."
 
+To generate view allure reports in windows (outside of result files via python): use allure serve allure-results
+
+If allure is not installed from PowerShell use command: scoop install allure
+scoop install allure
+
+
+If scoop is not installed use the following commands in powershell to install it:
+Set-ExecutionPolicy RemoteSigned -scope CurrentUser
+irm get.scoop.sh | iex
+
+To install allure on ubuntu, use : sudo apt install allure
+
 
 
 CountryWeather directory structure/

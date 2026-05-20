@@ -5,19 +5,90 @@ custom markers, and provides the ``api_client_fixture`` function-scoped fixture
 that constructs an :class:`~utils.api_client.ApiClient` bound to the correct
 environment configuration.
 
-Environment filtering follows the pattern documented in ``CLAUDE_LOG.md``:
-a :func:`pytest_runtest_setup` hook inspects the ``--env`` flag per item so
-that both marker groups execute by default when the flag is omitted.
+Also injects per-run environment metadata into pytest-html (via the
+``pytest_metadata`` hook) and writes an ``environment.properties`` file to
+the allure-results directory via ``pytest_sessionfinish``.
+
+Environment filtering is handled by :func:`pytest_collection_modifyitems`:
+when ``--env`` is supplied the non-matching items are deselected before the
+run begins; when omitted, both marker groups execute in full.
 """
+
+import os
+import platform
+import sys
+from pathlib import Path
 
 import pytest
 import yaml
-from pathlib import Path
 
 from utils.api_client import ApiClient
 
 _CONFIG_PATH = Path(__file__).parent / "config" / "environments.yaml"
+_ALLURE_RESULTS_DIR = Path(__file__).parent / "allure-results"
 _SUPPORTED_ENVS = ("countries", "weather")
+
+_DEFAULT_BASE_URL = "https://restcountries.com/v3.1"
+_DEFAULT_TEST_ENV = "dev"
+
+
+def _collect_env_metadata() -> dict:
+    """Collect runtime environment metadata for report injection.
+
+    Reads ``BASE_URL`` and ``TEST_ENV`` from the process environment,
+    falling back to safe defaults when those variables are absent so the
+    suite never crashes at session startup.
+
+    Returns:
+        dict: Mapping with keys ``"Operating System"``, ``"Python Version"``,
+        ``"Base URL"``, and ``"Test Environment"``.
+    """
+    return {
+        "Operating System": platform.platform(),
+        "Python Version": sys.version.split()[0],
+        "Base URL": os.environ.get("BASE_URL", _DEFAULT_BASE_URL),
+        "Test Environment": os.environ.get("TEST_ENV", _DEFAULT_TEST_ENV),
+    }
+
+
+def pytest_metadata(metadata: dict) -> None:
+    """Inject environment metadata into the pytest-html ``Environment`` table.
+
+    Called by the ``pytest-metadata`` plugin once per session. Augments the
+    built-in metadata dict so the HTML report's *Environment* section reflects
+    the actual runtime context.
+
+    Args:
+        metadata (dict): The mutable metadata dict owned by the
+            ``pytest-metadata`` plugin.
+
+    Returns:
+        None
+    """
+    metadata.update(_collect_env_metadata())
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Write an ``environment.properties`` file to the allure-results directory.
+
+    Creates ``allure-results/`` if it does not yet exist, then serialises all
+    collected environment metadata in the Java-properties format expected by the
+    Allure report renderer.
+
+    Args:
+        session (pytest.Session): The completed pytest session object.
+        exitstatus (int): The integer exit code produced by the session.
+
+    Returns:
+        None
+    """
+    _ALLURE_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    props_path = _ALLURE_RESULTS_DIR / "environment.properties"
+    metadata = _collect_env_metadata()
+    props_path.write_text(
+        "".join(f"{key}={value}\n" for key, value in metadata.items()),
+        encoding="utf-8",
+    )
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -52,24 +123,40 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "weather: tests targeting the Open-Meteo Weather API")
 
 
-def pytest_runtest_setup(item: pytest.Item) -> None:
-    """Skip tests whose marker does not match the active ``--env`` flag.
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    """Deselect test items whose marker does not match the active ``--env`` flag.
 
-    When ``--env`` is supplied, any test item that does not carry the
-    matching marker is skipped before setup begins. When ``--env`` is
-    omitted, all items run regardless of marker.
+    When ``--env`` is supplied, items that do not carry the matching marker are
+    moved to the deselected set and removed from the run entirely, producing a
+    clean ``N selected / M deselected`` summary rather than a list of skips.
+    When ``--env`` is omitted, all collected items run unchanged.
 
     Args:
-        item (pytest.Item): The test item about to enter the setup phase.
+        config (pytest.Config): The active pytest configuration object.
+        items (list[pytest.Item]): The full list of collected test items,
+            modified in-place to contain only the selected subset.
 
     Returns:
         None
     """
-    env_flag = item.config.getoption("--env")
+    env_flag = config.getoption("--env")
     if env_flag is None:
         return
-    if not item.get_closest_marker(env_flag):
-        pytest.skip(f"excluded by --env={env_flag}")
+
+    selected: list[pytest.Item] = []
+    deselected: list[pytest.Item] = []
+
+    for item in items:
+        if item.get_closest_marker(env_flag):
+            selected.append(item)
+        else:
+            deselected.append(item)
+
+    if deselected:
+        config.hook.pytest_deselected(items=deselected)
+        items[:] = selected
 
 
 @pytest.fixture(scope="session")
