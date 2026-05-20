@@ -1,0 +1,60 @@
+name: CountryWeather Suite Execution
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
+    inputs:
+      env:
+        description: 'Target environment (countries/weather/all)'
+        required: true
+        default: 'all'
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Tests
+        env:
+          TARGET_ENV: ${{ github.event.inputs.env || 'all' }}
+        run: |
+          mkdir -p test_results allure-results
+          pytest tests/ --env=$TARGET_ENV \
+            --junitxml=test_results/results.xml \
+            --html=test_results/report.html \
+            --self-contained-html \
+            --alluredir=allure-results
+
+      - name: Generate Allure Report
+        if: always() # Ensure this runs even if tests fail
+        run: |
+          # Use the Allure command-line tool via npm or a pre-built binary action
+          # Here we use a popular action to generate the report
+          sudo apt-get install -y default-jdk
+          npm install -g allure-commandline
+          allure generate allure-results --clean -o allure-report
+
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            test_results/
+            allure-report/
+          retention-days: 5
