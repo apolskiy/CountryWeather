@@ -1,0 +1,560 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"Verify that ``/region/europe`` returns more than 40 countries.
+
+Issues a ``GET /region/europe`` request, validates the schema of the
+first result using :class:`~validators.country_schema.CountrySchema`,
+and asserts that the total result count exceeds 40.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If the result count is 40 or fewer, or if schema
+        validation fails on the first result.
+","886","test_europe_region_count","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema correctness and forecast integrity for city-based hourly lookups.
+
+Issues a ``GET /forecast`` request (full URL: ``/v1/forecast``) with
+both ``current_weather=true`` and ``hourly=temperature_2m``, then
+validates the full response through
+:class:`~validators.weather_schema.WeatherForecastSchema`. Asserts
+that the current temperature is within the physically valid range of
+-80 °C to 60 °C, that the hourly dataset contains at least one entry,
+and that the ``timezone`` field is a non-empty string.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    city (dict): A single entry from ``test_data/cities.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any of the
+        temperature-range, hourly-count, or timezone assertions do
+        not hold.
+","924","test_forecast_by_city[Tokyo]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify schema integrity for alpha-code-based lookups.
+
+Issues a ``GET /alpha/{cca2}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with non-empty ``currencies``, ``languages``, and ``name``
+fields.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","613","test_country_by_alpha_code[AU]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema integrity for alpha-code-based lookups.
+
+Issues a ``GET /alpha/{cca2}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with non-empty ``currencies``, ``languages``, and ``name``
+fields.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","645","test_country_by_alpha_code[NG]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema integrity for alpha-code-based lookups.
+
+Issues a ``GET /alpha/{cca2}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with non-empty ``currencies``, ``languages``, and ``name``
+fields.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","637","test_country_by_alpha_code[DE]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema integrity for alpha-code-based lookups.
+
+Issues a ``GET /alpha/{cca2}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with non-empty ``currencies``, ``languages``, and ``name``
+fields.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","662","test_country_by_alpha_code[BR]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema integrity for alpha-code-based lookups.
+
+Issues a ``GET /alpha/{cca2}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with non-empty ``currencies``, ``languages``, and ``name``
+fields.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","632","test_country_by_alpha_code[JP]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema correctness and forecast integrity for city-based hourly lookups.
+
+Issues a ``GET /forecast`` request (full URL: ``/v1/forecast``) with
+both ``current_weather=true`` and ``hourly=temperature_2m``, then
+validates the full response through
+:class:`~validators.weather_schema.WeatherForecastSchema`. Asserts
+that the current temperature is within the physically valid range of
+-80 °C to 60 °C, that the hourly dataset contains at least one entry,
+and that the ``timezone`` field is a non-empty string.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    city (dict): A single entry from ``test_data/cities.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any of the
+        temperature-range, hourly-count, or timezone assertions do
+        not hold.
+","900","test_forecast_by_city[New York]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify full schema correctness for the Germany name-lookup response.
+
+Issues a ``GET /name/germany`` request and validates the first result
+through :class:`~validators.country_schema.CountrySchema`, asserting
+specific field values expected for Germany.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any Germany-specific
+        field assertion does not hold.
+","640","test_germany_schema","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema correctness and result count for name-based lookups.
+
+Issues a ``GET /name/{name}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with matching ``cca2``, ``region``, ``capital``, and
+``population`` values.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","644","test_country_by_name[japan]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify full schema correctness for a ``/name/germany`` response.
+
+Sends a ``GET /name/germany`` request and validates the first result
+through :class:`~validators.country_schema.CountrySchema`, confirming
+that ``name``, ``capital``, ``population``, ``currencies``, and
+``languages`` are present, correctly typed, and non-empty.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any required field
+        is absent, incorrectly typed, or empty.
+","626","test_germany_schema_validation","tests","2026-05-20","passed","2026-05-20","TestCountryApi","test_country_api","",""
+"Verify population is a non-negative integer for every ``/all`` entry.
+
+Sends a ``GET /all?fields=name,population`` request and iterates over
+every result, validating each through
+:class:`~validators.country_schema.CountryPopulationSchema` and
+asserting that ``population`` is not negative. Five uninhabited
+territories (e.g. Bouvet Island) legitimately report ``population: 0``
+in the API and are treated as valid; only negative values are flagged.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If any entry fails schema validation or reports
+        a negative population.
+","837","test_all_countries_population_integrity","tests","2026-05-20","passed","2026-05-20","TestCountryApi","test_country_api","",""
+"Verify schema correctness and data integrity for coordinate-based weather lookups.
+
+Issues a ``GET /forecast`` request with ``current_weather=true`` and
+asserts that the response passes full
+:class:`~validators.weather_schema.WeatherSchema` validation, that the
+returned coordinates fall within the expected grid-snapping tolerance,
+and that all observation values are within physically valid ranges.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    location (dict): A single entry from ``test_data/coordinates.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any physical-range
+        or coordinate-tolerance assertion does not hold.
+","900","test_current_weather_by_coordinates[New York]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify schema correctness and data integrity for coordinate-based weather lookups.
+
+Issues a ``GET /forecast`` request with ``current_weather=true`` and
+asserts that the response passes full
+:class:`~validators.weather_schema.WeatherSchema` validation, that the
+returned coordinates fall within the expected grid-snapping tolerance,
+and that all observation values are within physically valid ranges.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    location (dict): A single entry from ``test_data/coordinates.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any physical-range
+        or coordinate-tolerance assertion does not hold.
+","893","test_current_weather_by_coordinates[Lagos]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify that ``/region/europe`` returns more than 40 countries.
+
+Sends a ``GET /region/europe`` request and asserts the response list
+contains more than 40 entries, confirming that the regional endpoint
+returns a meaningful dataset rather than a truncated or empty result.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If the result count is 40 or fewer.
+","909","test_europe_region_count","tests","2026-05-20","passed","2026-05-20","TestCountryApi","test_country_api","",""
+"Verify schema correctness and data integrity for coordinate-based weather lookups.
+
+Issues a ``GET /forecast`` request with ``current_weather=true`` and
+asserts that the response passes full
+:class:`~validators.weather_schema.WeatherSchema` validation, that the
+returned coordinates fall within the expected grid-snapping tolerance,
+and that all observation values are within physically valid ranges.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    location (dict): A single entry from ``test_data/coordinates.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any physical-range
+        or coordinate-tolerance assertion does not hold.
+","905","test_current_weather_by_coordinates[Tokyo]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify that Germany's common name appears in the ``/region/europe`` result set.
+
+Issues a ``GET /name/germany`` request to resolve the canonical common
+name via :class:`~validators.country_schema.CountrySchema`, then issues
+a ``GET /region/europe`` request and asserts that the resolved name is
+present among the European results.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If Germany's common name is not found in the
+        ``/region/europe`` result set, or if either request fails
+        schema validation.
+","1051","test_cross_reference_germany","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema correctness and forecast integrity for city-based hourly lookups.
+
+Issues a ``GET /forecast`` request (full URL: ``/v1/forecast``) with
+both ``current_weather=true`` and ``hourly=temperature_2m``, then
+validates the full response through
+:class:`~validators.weather_schema.WeatherForecastSchema`. Asserts
+that the current temperature is within the physically valid range of
+-80 °C to 60 °C, that the hourly dataset contains at least one entry,
+and that the ``timezone`` field is a non-empty string.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    city (dict): A single entry from ``test_data/cities.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any of the
+        temperature-range, hourly-count, or timezone assertions do
+        not hold.
+","938","test_forecast_by_city[Lagos]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify Germany appears in the results for its own dynamically resolved region.
+
+Sends a ``GET /name/germany`` request and extracts the ``region`` and
+``name.common`` fields via :class:`~validators.country_schema.CountrySchema`.
+Then sends a ``GET /region/{region}`` request and asserts that Germany's
+common name is present in the returned country list.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If Germany's common name is absent from the
+        ``/region/{region}`` result set, or if either request fails
+        schema validation.
+","981","test_germany_cross_reference_region","tests","2026-05-20","passed","2026-05-20","TestCountryApi","test_country_api","",""
+"Verify schema correctness and data integrity for coordinate-based weather lookups.
+
+Issues a ``GET /forecast`` request with ``current_weather=true`` and
+asserts that the response passes full
+:class:`~validators.weather_schema.WeatherSchema` validation, that the
+returned coordinates fall within the expected grid-snapping tolerance,
+and that all observation values are within physically valid ranges.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    location (dict): A single entry from ``test_data/coordinates.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any physical-range
+        or coordinate-tolerance assertion does not hold.
+","912","test_current_weather_by_coordinates[Berlin]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify schema correctness and result count for name-based lookups.
+
+Issues a ``GET /name/{name}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with matching ``cca2``, ``region``, ``capital``, and
+``population`` values.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","663","test_country_by_name[germany]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema correctness and result count for name-based lookups.
+
+Issues a ``GET /name/{name}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with matching ``cca2``, ``region``, ``capital``, and
+``population`` values.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","631","test_country_by_name[australia]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify that every country in the ``/all`` endpoint reports a non-negative population.
+
+Issues a ``GET /all?fields=name,population`` request and iterates
+over every result, validating each through
+:class:`~validators.country_schema.CountryPopulationSchema` and
+asserting that ``population`` is not negative. Uninhabited territories
+legitimately report ``population: 0`` and are considered valid.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If any entry fails schema validation or reports a
+        negative population.
+","875","test_all_population_check","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema correctness and data integrity for coordinate-based weather lookups.
+
+Issues a ``GET /forecast`` request with ``current_weather=true`` and
+asserts that the response passes full
+:class:`~validators.weather_schema.WeatherSchema` validation, that the
+returned coordinates fall within the expected grid-snapping tolerance,
+and that all observation values are within physically valid ranges.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    location (dict): A single entry from ``test_data/coordinates.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any physical-range
+        or coordinate-tolerance assertion does not hold.
+","889","test_current_weather_by_coordinates[Sydney]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify schema correctness and result count for name-based lookups.
+
+Issues a ``GET /name/{name}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with matching ``cca2``, ``region``, ``capital``, and
+``population`` values.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","648","test_country_by_name[nigeria]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify that a lookup for a non-existent country name yields HTTP 404.
+
+Sends a ``GET /name/zzz_nonexistent_country_xyz`` request. Because
+:class:`~utils.api_client.ApiClient` calls
+:meth:`~requests.Response.raise_for_status` internally, a 4xx response
+surfaces as :exc:`requests.HTTPError`. The test asserts that the
+embedded status code is exactly 404.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If the raised :exc:`requests.HTTPError` does not
+        carry an HTTP 404 status code.
+","634","test_nonexistent_country_returns_404","tests","2026-05-20","passed","2026-05-20","TestCountryApi","test_country_api","",""
+"Verify schema correctness and forecast integrity for city-based hourly lookups.
+
+Issues a ``GET /forecast`` request (full URL: ``/v1/forecast``) with
+both ``current_weather=true`` and ``hourly=temperature_2m``, then
+validates the full response through
+:class:`~validators.weather_schema.WeatherForecastSchema`. Asserts
+that the current temperature is within the physically valid range of
+-80 °C to 60 °C, that the hourly dataset contains at least one entry,
+and that the ``timezone`` field is a non-empty string.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    city (dict): A single entry from ``test_data/cities.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any of the
+        temperature-range, hourly-count, or timezone assertions do
+        not hold.
+","907","test_forecast_by_city[Sydney]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""
+"Verify schema correctness and result count for name-based lookups.
+
+Issues a ``GET /name/{name}`` request and asserts that the response
+list meets the configured minimum length and that the first result
+passes full :class:`~validators.country_schema.CountrySchema`
+validation with matching ``cca2``, ``region``, ``capital``, and
+``population`` values.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    country (dict): A single entry from ``test_data/countries.json``
+        containing ``name``, ``cca2``, and ``region`` keys.
+
+Returns:
+    None
+","627","test_country_by_name[brazil]","tests","2026-05-20","passed","2026-05-20","TestCountries","test_countries","",""
+"Verify schema correctness and forecast integrity for city-based hourly lookups.
+
+Issues a ``GET /forecast`` request (full URL: ``/v1/forecast``) with
+both ``current_weather=true`` and ``hourly=temperature_2m``, then
+validates the full response through
+:class:`~validators.weather_schema.WeatherForecastSchema`. Asserts
+that the current temperature is within the physically valid range of
+-80 °C to 60 °C, that the hourly dataset contains at least one entry,
+and that the ``timezone`` field is a non-empty string.
+
+Args:
+    api_client_fixture (ApiClient): Environment-scoped HTTP client
+        provided by ``conftest.py``.
+    city (dict): A single entry from ``test_data/cities.json``
+        containing ``city``, ``latitude``, and ``longitude`` keys.
+
+Returns:
+    None
+
+Raises:
+    AssertionError: If schema validation fails or any of the
+        temperature-range, hourly-count, or timezone assertions do
+        not hold.
+","914","test_forecast_by_city[Berlin]","tests","2026-05-20","passed","2026-05-20","TestWeather","test_weather","",""

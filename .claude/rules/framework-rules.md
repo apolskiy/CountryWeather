@@ -13,3 +13,10 @@ You must strictly adhere to the following architectural rules for this framework
 ## 3. Test File Boundaries
 * **No Inter-Test Imports**: Test files must never import helper functions, data fixtures, or variables from other test files.
 * **Component Layering**: Test files can only import from `utils/api_client.py`, `validators/`, or utilize fixtures provided natively by `conftest.py`.
+## 4. Documentation & Pylint Compliance
+* **Google-Style Docstrings**: Every module, class, and function must include a docstring following the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings).
+* **Mandatory Sections**: Every function must include `Args:`, `Returns:`, and `Raises:` (if applicable).
+* **Pylint Strictness**: Code must be written to pass standard `pylint` checks.
+    * No `missing-docstring` (C0111/C0116).
+    * No `missing-module-docstring` (C0114).
+    * Use explicit type hints for all parameters and return types to satisfy Pylint.

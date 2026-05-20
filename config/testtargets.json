@@ -1,0 +1,9 @@
+{
+  "test_environment_nodes": [
+    {
+      "name": "apubuntu",
+      "ip": "67.164.88.7",
+      "os": "Ubuntu 24.04.4 LTS"
+    }
+  ]
+}

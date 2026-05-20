@@ -1,9 +1,10 @@
 """Typed schema validators for the REST Countries API (v3.1).
 
-Provides :class:`CountryName` and :class:`CountrySchema` dataclasses that
-parse and type-validate raw JSON payloads returned by ``restcountries.com``.
-All parsing occurs through :meth:`from_dict` factory methods that perform
-explicit field-presence checks before construction.
+Provides :class:`CountryName`, :class:`CountrySchema`, and
+:class:`CountryPopulationSchema` dataclasses that parse and type-validate
+raw JSON payloads returned by ``restcountries.com``. All parsing occurs
+through :meth:`from_dict` factory methods that perform explicit
+field-presence checks before construction.
 """
 
 from dataclasses import dataclass
@@ -108,4 +109,47 @@ class CountrySchema:
             region=str(data["region"]),
             cca2=str(data["cca2"]),
             flags=dict(data["flags"]),
+        )
+
+
+@dataclass
+class CountryPopulationSchema:
+    """Minimal validator for fields-filtered ``/all`` endpoint responses.
+
+    Used when the API query restricts returned fields to ``name`` and
+    ``population`` only (e.g. ``GET /all?fields=name,population``).
+    Full-field responses should use :class:`CountrySchema` instead.
+
+    Attributes:
+        name (CountryName): Parsed name sub-object containing common and
+            official country name strings.
+        population (int): Total population count.
+    """
+
+    name: CountryName
+    population: int
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "CountryPopulationSchema":
+        """Construct a :class:`CountryPopulationSchema` from a raw API payload dict.
+
+        Args:
+            data (Dict[str, Any]): A single country object from the
+                fields-filtered ``/all`` endpoint response. Must contain
+                ``"name"`` and ``"population"`` keys.
+
+        Returns:
+            CountryPopulationSchema: A fully populated and type-cast instance.
+
+        Raises:
+            KeyError: If ``"name"`` or ``"population"`` is absent from
+                *data*, or if a nested required field is absent from the
+                ``name`` sub-object.
+        """
+        for field in ("name", "population"):
+            if field not in data:
+                raise KeyError(f"Missing mandatory schema field: '{field}'")
+        return cls(
+            name=CountryName.from_dict(data["name"]),
+            population=int(data["population"]),
         )
