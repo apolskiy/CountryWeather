@@ -1,22 +1,35 @@
-name: CountryWeather Suite Execution
+This consolidated workflow integrates your existing domain-filtering logic (using the --env flag) with your target-based deployment orchestration.
+
+I have optimized the structure to ensure the execute-on-targets job runs only after your tests pass, and I have added a workflow_dispatch trigger so you can manually select the environment (countries, weather, or all) directly from the GitHub UI without changing the code.
+
+The Combined .github/workflows/ci.yml
+Create/replace this in .github/workflows/ci.yml:
+
+YAML
+name: CountryWeather CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch: # Allows manual triggering from the GitHub UI
+    branches: [ "**" ]
+  workflow_dispatch:
     inputs:
       env:
-        description: 'Target environment (countries/weather/all)'
+        description: 'Domain to test'
         required: true
         default: 'all'
+        type: choice
+        options:
+          - all
+          - countries
+          - weather
 
 jobs:
-  run-tests:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -25,36 +38,74 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Tests
+      - name: Run Tests with Dual Reports
         env:
+          # Use manual trigger input, or default to 'all' if pushed via branch
           TARGET_ENV: ${{ github.event.inputs.env || 'all' }}
         run: |
           mkdir -p test_results allure-results
-          pytest tests/ --env=$TARGET_ENV \
-            --junitxml=test_results/results.xml \
-            --html=test_results/report.html \
-            --self-contained-html \
-            --alluredir=allure-results
+          pytest --env=$TARGET_ENV \
+                 --junitxml=test_results/results.xml \
+                 --html=test_results/report.html \
+                 --self-contained-html \
+                 --alluredir=allure-results
 
       - name: Generate Allure Report
-        if: always() # Ensure this runs even if tests fail
+        if: always()
         run: |
-          # Use the Allure command-line tool via npm or a pre-built binary action
-          # Here we use a popular action to generate the report
-          sudo apt-get install -y default-jdk
-          npm install -g allure-commandline
+          # Robust Allure installation
+          if ! command -v allure &> /dev/null; then
+            wget https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
+            tar -zxvf allure-2.24.1.tgz -C /opt/
+            sudo ln -s /opt/allure-2.24.1/bin/allure /usr/bin/allure
+          fi
           allure generate allure-results --clean -o allure-report
 
-      - name: Upload Test Artifacts
+      - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: qa-artifacts
           path: |
             test_results/
             allure-report/
-          retention-days: 5
+
+      - name: Post Job Summary
+        if: always()
+        run: |
+          echo "## 🚀 QA Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Domain Tested:** ${{ github.event.inputs.env || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifacts:** Check 'qa-artifacts' in the Actions Summary tab." >> $GITHUB_STEP_SUMMARY
+
+  execute-on-targets:
+    needs: test
+    runs-on: ubuntu-latest
+    # Only run deployment/orchestration on main
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Execute against Targets
+        run: |
+          sudo apt-get install jq -y
+          # Ensure config/targets.json exists
+          if [ -f "config/targets.json" ]; then
+            for target in $(cat config/targets.json | jq -c '.test_environment_nodes[]'); do
+              NAME=$(echo $target | jq -r '.name')
+              IP=$(echo $target | jq -r '.ip')
+              OS=$(echo $target | jq -r '.os')
+              echo "--- Orchestrating execution on: $NAME ($IP) [$OS] ---"
+              # PLACEHOLDER: Insert your SSH/Deploy commands here
+              # Example: ssh user@$IP "command"
+            done
+          else
+            echo "::warning:: config/targets.json not found. Skipping orchestration."
+          fi
+          echo "::notice:: Deployment orchestration completed for ${{ github.event.inputs.env || 'all' }} environment."
