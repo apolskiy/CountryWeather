@@ -1,10 +1,3 @@
-This consolidated workflow integrates your existing domain-filtering logic (using the --env flag) with your target-based deployment orchestration.
-
-I have optimized the structure to ensure the execute-on-targets job runs only after your tests pass, and I have added a workflow_dispatch trigger so you can manually select the environment (countries, weather, or all) directly from the GitHub UI without changing the code.
-
-The Combined .github/workflows/ci.yml
-Create/replace this in .github/workflows/ci.yml:
-
 YAML
 name: CountryWeather CI Pipeline
 
