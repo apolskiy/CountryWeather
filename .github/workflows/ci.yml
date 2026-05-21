@@ -3,31 +3,33 @@ name: CountryWeather CI Pipeline
 on:
   push:
     branches: [ "**" ]
-  pull_request:
-    branches: [ "**" ]
   workflow_dispatch:
     inputs:
       env:
-        description: 'Domain to test (countries, weather, or all)'
+        description: 'Domain to test'
         required: true
         default: 'all'
         type: choice
-        options:
-          - all
-          - countries
-          - weather
+        options: [all, countries, weather]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.14.5
+      - name: Debug File Structure
+        run: |
+          echo "--- Checking File Structure ---"
+          find . -maxdepth 3 -not -path '*/.*'
+
+      - name: Set up Python 3.12.3
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14.5'
+          python-version: '3.12.3'
           cache: 'pip'
 
       - name: Install Dependencies
@@ -35,13 +37,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Tests
+      - name: Run Tests (Diagnostic)
         env:
           TARGET_ENV: ${{ github.event.inputs.env || 'all' }}
         run: |
+          # 1. Clean old results
+          rm -rf allure-results test_results
           mkdir -p allure-results
-          # Replace 'tests/' with the path to your test folder if different
-          pytest tests/ --env=$TARGET_ENV --alluredir=allure-results
+          
+          # 2. Run with -v (verbose) and --collect-only
+          # This will show us why it's collecting 0 items without crashing
+          echo "--- Collecting Tests ---"
+          pytest -v --collect-only --env=$TARGET_ENV
+          
+          # 3. Run for real
+          echo "--- Executing Tests ---"
+          pytest -v --env=$TARGET_ENV --alluredir=allure-results
 
       - name: Generate Allure Report
         if: always()
