@@ -3,6 +3,8 @@ name: CountryWeather CI Pipeline
 on:
   push:
     branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
   workflow_dispatch:
     inputs:
       env:
@@ -21,11 +23,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Debug File Structure
-        run: |
-          echo "--- Checking File Structure ---"
-          find . -maxdepth 3 -not -path '*/.*'
-
       - name: Set up Python 3.12.3
         uses: actions/setup-python@v5
         with:
@@ -35,28 +32,23 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
+          # Ensure your requirements.txt includes: pytest, pytest-html, allure-pytest
           pip install -r requirements.txt
 
-      - name: Run Tests (Diagnostic)
+      - name: Run Tests and Generate Report
         env:
           TARGET_ENV: ${{ github.event.inputs.env || 'all' }}
         run: |
-          # 1. Clean old results
-          rm -rf allure-results test_results
-          mkdir -p allure-results
-          
-          # 2. Run with -v (verbose) and --collect-only
-          # This will show us why it's collecting 0 items without crashing
-          echo "--- Collecting Tests ---"
-          pytest -v --collect-only --env=$TARGET_ENV
-          
-          # 3. Run for real
-          echo "--- Executing Tests ---"
-          pytest -v --env=$TARGET_ENV --alluredir=allure-results
+          # 1. Clean environment
+          rm -rf test_results allure-results allure-report
+          mkdir -p test_results allure-results
 
-      - name: Generate Allure Report
-        if: always()
-        run: |
+          # 2. Run your specific test command
+          # Added -v for logging visibility
+          pytest tests/ --env=$TARGET_ENV --junitxml=test_results/results.xml --html=test_results/report.html --self-contained-html --alluredir=allure-results -v
+
+          # 3. Generate report
+          # Ensure allure is installed
           sudo apt-get update && sudo apt-get install -y default-jdk
           npm install -g allure-commandline
           allure generate allure-results --clean -o allure-report
@@ -66,4 +58,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qa-artifacts
-          path: allure-report/
+          # We upload both the HTML report and the Allure folder
+          path: |
+            test_results/
+            allure-report/
