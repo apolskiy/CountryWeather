@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       env:
-        description: 'Domain to test'
+        description: 'Domain to test (countries, weather, or all)'
         required: true
         default: 'all'
         type: choice
@@ -24,10 +24,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.14.5
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.14.5'
           cache: 'pip'
 
       - name: Install Dependencies
@@ -35,27 +35,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Tests with Dual Reports
+      - name: Run Tests
         env:
-          # Use manual trigger input, or default to 'all' if pushed via branch
           TARGET_ENV: ${{ github.event.inputs.env || 'all' }}
         run: |
-          mkdir -p test_results allure-results
-          pytest --env=$TARGET_ENV \
-                 --junitxml=test_results/results.xml \
-                 --html=test_results/report.html \
-                 --self-contained-html \
-                 --alluredir=allure-results
+          mkdir -p allure-results
+          # Replace 'tests/' with the path to your test folder if different
+          pytest tests/ --env=$TARGET_ENV --alluredir=allure-results
 
       - name: Generate Allure Report
         if: always()
         run: |
-          # Robust Allure installation
-          if ! command -v allure &> /dev/null; then
-            wget https://github.com/allure-framework/allure2/releases/download/2.24.1/allure-2.24.1.tgz
-            tar -zxvf allure-2.24.1.tgz -C /opt/
-            sudo ln -s /opt/allure-2.24.1/bin/allure /usr/bin/allure
-          fi
+          sudo apt-get update && sudo apt-get install -y default-jdk
+          npm install -g allure-commandline
           allure generate allure-results --clean -o allure-report
 
       - name: Upload Artifacts
@@ -63,41 +55,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qa-artifacts
-          path: |
-            test_results/
-            allure-report/
-
-      - name: Post Job Summary
-        if: always()
-        run: |
-          echo "## 🚀 QA Execution Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Domain Tested:** ${{ github.event.inputs.env || 'all' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Artifacts:** Check 'qa-artifacts' in the Actions Summary tab." >> $GITHUB_STEP_SUMMARY
-
-  execute-on-targets:
-    needs: test
-    runs-on: ubuntu-latest
-    # Only run deployment/orchestration on main
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Execute against Targets
-        run: |
-          sudo apt-get install jq -y
-          # Ensure config/targets.json exists
-          if [ -f "config/targets.json" ]; then
-            for target in $(cat config/targets.json | jq -c '.test_environment_nodes[]'); do
-              NAME=$(echo $target | jq -r '.name')
-              IP=$(echo $target | jq -r '.ip')
-              OS=$(echo $target | jq -r '.os')
-              echo "--- Orchestrating execution on: $NAME ($IP) [$OS] ---"
-              # PLACEHOLDER: Insert your SSH/Deploy commands here
-              # Example: ssh user@$IP "command"
-            done
-          else
-            echo "::warning:: config/targets.json not found. Skipping orchestration."
-          fi
-          echo "::notice:: Deployment orchestration completed for ${{ github.event.inputs.env || 'all' }} environment."
+          path: allure-report/
