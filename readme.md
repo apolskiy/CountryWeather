@@ -1,74 +1,75 @@
-To be able to deploy teh project from github onto a remote ubuntu server:
-Configured .gthub/workflows/ci.yml to run on push to any branch.
+Aleksandr Polskiy<br>
+1. Project Structure
+CountryWeather/<br>
+├── .claude/                  # AI Governance & Coding Standards<br>
+├── .github/workflows/        # CI/CD Pipeline Definitions<br>
+├── config/                   # Environments.yaml & static config<br>
+├── tests/                    # Core Functional Test Logic<br>
+├── utils/                    # Shared HTTP API Client<br>
+├── validators/               # Pydantic Schema Enforcement<br>
+├── allure-results/           # Raw Test Data<br>
+├── allure-report/            # Generated HTML Reports<br>
+└── requirements.txt          # Project Dependencies<br>
+2. Setup & Installation
+Prerequisites
+Python 3.14.5
 
+Allure Commandline (for report generation)
 
-Project Structure:
+Installation
+Clone the repository.
 
-config/: Houses all environment, infrastructure, and static inventory configuration files.
+Create a virtual environment:
 
-.github/workflows/: Contains the CI/CD pipeline definitions.
+Bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+Install dependencies:
 
-tests/: Contains the business logic and test cases.
+Bash
+   pip install -r requirements.txt
+Allure Reporting Setup
+Ubuntu/Linux: sudo apt install allure
 
-validators/: Contains schema enforcement classes (Pydantic/Dataclasses)
-utils/:
-Original Claude prompt:
-"Using the rules defined in .claude/rules/framework-rules.md, generate the config/environments.yaml file. Ensure the schema strictly matches the requirements: two environments ('countries', 'weather') with base_urls, max_response_time, and min_results_count. No other values should be added."
+Windows (via Scoop):
 
-To generate view allure reports in windows (outside of result files via python): use allure serve allure-results
+PowerShell
+    Set-ExecutionPolicy RemoteSigned -scope CurrentUser
+    irm get.scoop.sh | iex
+    scoop install allure
+    ```
 
-If allure is not installed from PowerShell use command: scoop install allure
-scoop install allure
+## 3. Usage
+Run the test suite using `pytest`. You can filter by environment (countries/weather) or run all:
 
+```bash
+# Run all tests
+pytest tests/
 
-If scoop is not installed use the following commands in powershell to install it:
-Set-ExecutionPolicy RemoteSigned -scope CurrentUser
-irm get.scoop.sh | iex
+# Run specific environment
+pytest tests/ --env=countries
+To view reports locally after a test run:
 
-To install allure on ubuntu, use : sudo apt install allure
+Bash
+allure serve allure-results
+4. CI/CD Pipeline
+This project is configured for GitHub Actions (.github/workflows/ci.yml).
 
+Triggers: Automatically runs on push to any branch and manual workflow_dispatch.
 
+Artifacts: Automatically generates and uploads JUnit XML and Allure HTML reports for every run.
 
-CountryWeather directory structure/
-├── .claude/                  # AI Governance & Coding Standard <br>
-│   ├── rules/                # Constraints for AI behavior <br>
-│   └── skills/               # Reusable test-generation templates <br>
-├── .github/                  # CI/CD Orchestration <br>
-│   └── workflows/<br>
-│       └── ci.yml            # Pipeline definition <br>
-├── config/                   # Static Configuration Data <br>
-│   ├── environments.yaml     # API endpoints & test thresholds <br>
-│   └── targets.json          # Infrastructure inventory (OS/IP list) <br>
-├── test_results/             # Artifacts: JUnit XML & HTML reports <br>
-├── allure-results/           # Artifacts: Raw Allure test data <br>
-├── allure-report/            # Artifacts: Generated Allure HTML report <br>
-├── tests/                    # Core Test Logic <br>
-│   ├── test_countries.py     # Functional test suite <br>
-│   └── test_weather.py       # Functional test suite
-├── utils/                    # Shared Infrastructure <br>
-│   └── api_client.py         # HTTP abstraction & logging
-├── validators/               # Schema Enforcement <br>
-│   ├── __init__.py           # Package declaration <br>
-│   ├── country_validator.py  # Pydantic/Jsonschema logic <br>
-│   └── weather_validator.py  # Pydantic/Jsonschema logic <br>
-├── test_data/                # Static data fixtures <br>
-├── .gitignore                # Version control exclusions <br>
-├── conftest.py               # Runtime fixtures & pytest hooks (Root) <br>
-├── requirements.txt          # Environment dependencies <br>
-├── CLAUDE_LOG.md             # Engineering decision journal <br>
-└── README.md                 # Project documentation <br>
+Runner: Configured for ubuntu-latest (GitHub Cloud Runner).
 
+5. Engineering Notes & Configuration
+Performance Thresholds
+The framework enforces strict response time thresholds defined in config/environments.yaml 
+(max_response_time: 2.0 for Countries, 3.0 for Weather).
 
-
-Correction prompt to refactor the files include doc strings, function annotations, type hints without changing the logic:
-""I need to perform a quality audit on the existing codebase. Refactor every Python file in the utils/, tests/, and validators/ directories to strictly comply with the framework-rules.md documentation standards.
-
-Add Google-style docstrings to every module, class, and method.
-
-Ensure every docstring has Args: and Returns: sections.
-
-Verify all type hints are present.
-
-Ensure no pylint C0111, C0114, or C0116 warnings would trigger.
-
-Do not change the logic—only improve the documentation and annotations."
+Note on CI Latency:
+Because this project uses public GitHub cloud runners, network variability can occasionally 
+trigger false-negative AssertionError failures. If you observe flakiness during CI runs, ensure
+your local environment thresholds are appropriately tuned, or consider migrating to a self-hosted 
+runner if strict latency validation is a primary requirement.
+Just in case tested with 5.0 timeouts tests work. In case of flaky tests detailed log analisys 
+tools may be necessary.
