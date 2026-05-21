@@ -104,7 +104,6 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
         "--env",
         action="store",
-        choices=_SUPPORTED_ENVS,
         default=None,
         help="Restrict execution to a single environment: 'countries' or 'weather'.",
     )
@@ -141,9 +140,13 @@ def pytest_collection_modifyitems(
     Returns:
         None
     """
-    env_flag = config.getoption("--env")
+    env_flag = config.getoption("--env") or None
     if env_flag is None:
         return
+    if env_flag not in _SUPPORTED_ENVS:
+        raise ValueError(
+            f"--env={env_flag!r} is not valid. Choose from: {_SUPPORTED_ENVS}"
+        )
 
     selected: list[pytest.Item] = []
     deselected: list[pytest.Item] = []

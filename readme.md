@@ -1,3 +1,5 @@
+To be able to deploy teh project from github onto a remote ubuntu server:
+Configured .gthub/workflows/ci.yml to run on push to any branch.
 
 
 Project Structure:
@@ -28,33 +30,33 @@ To install allure on ubuntu, use : sudo apt install allure
 
 
 CountryWeather directory structure/
-├── .claude/                  # AI Governance & Coding Standards
-│   ├── rules/                # Constraints for AI behavior
-│   └── skills/               # Reusable test-generation templates
-├── .github/                  # CI/CD Orchestration
-│   └── workflows/
-│       └── ci.yml            # Pipeline definition
-├── config/                   # Static Configuration Data
-│   ├── environments.yaml     # API endpoints & test thresholds
-│   └── targets.json          # Infrastructure inventory (OS/IP list)
-├── test_results/             # Artifacts: JUnit XML & HTML reports
-├── allure-results/           # Artifacts: Raw Allure test data
-├── allure-report/            # Artifacts: Generated Allure HTML report
-├── tests/                    # Core Test Logic
-│   ├── test_countries.py     # Functional test suite
+├── .claude/                  # AI Governance & Coding Standard <br>
+│   ├── rules/                # Constraints for AI behavior <br>
+│   └── skills/               # Reusable test-generation templates <br>
+├── .github/                  # CI/CD Orchestration <br>
+│   └── workflows/<br>
+│       └── ci.yml            # Pipeline definition <br>
+├── config/                   # Static Configuration Data <br>
+│   ├── environments.yaml     # API endpoints & test thresholds <br>
+│   └── targets.json          # Infrastructure inventory (OS/IP list) <br>
+├── test_results/             # Artifacts: JUnit XML & HTML reports <br>
+├── allure-results/           # Artifacts: Raw Allure test data <br>
+├── allure-report/            # Artifacts: Generated Allure HTML report <br>
+├── tests/                    # Core Test Logic <br>
+│   ├── test_countries.py     # Functional test suite <br>
 │   └── test_weather.py       # Functional test suite
-├── utils/                    # Shared Infrastructure
+├── utils/                    # Shared Infrastructure <br>
 │   └── api_client.py         # HTTP abstraction & logging
-├── validators/               # Schema Enforcement
-│   ├── __init__.py           # Package declaration
-│   ├── country_validator.py  # Pydantic/Jsonschema logic
-│   └── weather_validator.py  # Pydantic/Jsonschema logic
-├── test_data/                # Static data fixtures
-├── .gitignore                # Version control exclusions
-├── conftest.py               # Runtime fixtures & pytest hooks (Root)
-├── requirements.txt          # Environment dependencies
-├── CLAUDE_LOG.md             # Engineering decision journal
-└── README.md                 # Project documentation
+├── validators/               # Schema Enforcement <br>
+│   ├── __init__.py           # Package declaration <br>
+│   ├── country_validator.py  # Pydantic/Jsonschema logic <br>
+│   └── weather_validator.py  # Pydantic/Jsonschema logic <br>
+├── test_data/                # Static data fixtures <br>
+├── .gitignore                # Version control exclusions <br>
+├── conftest.py               # Runtime fixtures & pytest hooks (Root) <br>
+├── requirements.txt          # Environment dependencies <br>
+├── CLAUDE_LOG.md             # Engineering decision journal <br>
+└── README.md                 # Project documentation <br>
 
 
 
