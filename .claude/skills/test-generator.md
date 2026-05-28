@@ -1,6 +1,5 @@
 # Skill: Test Generator for CountryWeather Framework
 
-# Skill: Test Generator for PANW-QA Framework
 
 ## Context
 Use this skill when asked to write a new pytest file. The generated file must follow `framework-rules.md`, maintain Pylint compliance (Google-style docstrings, type hints), use the `ApiClient` pattern for requests, utilize `allure` decorators, implement logging on assertion failure, and provide both positive and negative test cases.
