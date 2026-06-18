@@ -126,7 +126,7 @@ CountryWeather/
 
 ### Prerequisites
 
-* Python 3.12.3
+* Python 3.14.5
 * Allure Commandline
 
 ### Installation

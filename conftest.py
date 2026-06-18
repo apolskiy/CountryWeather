@@ -30,7 +30,7 @@ _ALLURE_RESULTS_DIR = Path(__file__).parent / "allure-results"
 _MASTER_ENTITIES_PATH = Path(__file__).parent / "test_data" / "master_entities.json"
 _SUPPORTED_ENVS = ("countries", "weather")
 
-_DEFAULT_BASE_URL = "https://restcountries.com/v3.1"
+_DEFAULT_BASE_URL = "https://api.restcountries.com/countries/v5"
 _DEFAULT_TEST_ENV = "dev"
 
 

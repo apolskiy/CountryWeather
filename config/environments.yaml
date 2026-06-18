@@ -8,6 +8,14 @@ countries:
   # Maximum page size accepted by the v5 API (the API rejects limits > 100).
   # Used by ApiClient.get_objects when paginating list endpoints.
   page_limit: 100
+  # Hard per-attempt network ceiling (seconds). A stalled connection fails this
+  # fast instead of hanging indefinitely. Must exceed max_response_time so a
+  # slow-but-alive response trips the performance gate rather than the timeout.
+  request_timeout: 15.0
+  # Transient-error resilience: number of extra attempts on connection/timeout
+  # errors, with exponential backoff (retry_backoff * 2**attempt seconds).
+  max_retries: 2
+  retry_backoff: 0.5
 
 weather:
   base_url: "https://api.open-meteo.com/v1"
@@ -16,3 +24,6 @@ weather:
   # Open-Meteo requires no authentication and exposes no paginated endpoints.
   auth_env_var: null
   page_limit: null
+  request_timeout: 10.0
+  max_retries: 2
+  retry_backoff: 0.5

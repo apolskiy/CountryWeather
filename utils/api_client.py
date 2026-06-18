@@ -41,9 +41,11 @@ class ApiClient:
                 ``config/environments.yaml``. Must contain the keys
                 ``base_url`` (str), ``max_response_time`` (float),
                 ``min_results_count`` (int), ``auth_env_var`` (str or None),
-                and ``page_limit`` (int or None). A missing key raises
-                :exc:`KeyError` immediately. When ``auth_env_var`` is a
-                non-empty string, the named environment variable must be set.
+                ``page_limit`` (int or None), ``request_timeout`` (float),
+                ``max_retries`` (int), and ``retry_backoff`` (float). A missing
+                key raises :exc:`KeyError` immediately. When ``auth_env_var``
+                is a non-empty string, the named environment variable must be
+                set.
 
         Raises:
             KeyError: If any required configuration key is absent from
@@ -55,6 +57,9 @@ class ApiClient:
         self._min_results_count: int = env_config["min_results_count"]
         self._auth_env_var: Optional[str] = env_config["auth_env_var"]
         self._page_limit: Optional[int] = env_config["page_limit"]
+        self._request_timeout: float = env_config["request_timeout"]
+        self._max_retries: int = env_config["max_retries"]
+        self._retry_backoff: float = env_config["retry_backoff"]
         self._session = requests.Session()
 
         if self._auth_env_var:
@@ -77,13 +82,19 @@ class ApiClient:
         return self._min_results_count
 
     def request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
-        """Execute an HTTP request and enforce the response-time threshold.
+        """Execute an HTTP request with timeout, retries, and response-time gating.
 
         Constructs the full URL by appending *path* to the configured
-        ``base_url``, times the round-trip with :func:`time.perf_counter`,
-        and asserts that the elapsed time does not exceed
-        ``max_response_time``. The ``Authorization`` header (when configured)
-        is applied automatically by the underlying session.
+        ``base_url`` and issues the request with a hard ``request_timeout``
+        (so a stalled connection fails fast rather than hanging indefinitely).
+        Transient transport failures (:class:`requests.ConnectionError` and
+        :class:`requests.Timeout`) are retried up to ``max_retries`` times with
+        exponential backoff. The round-trip of the *successful* attempt is
+        timed with :func:`time.perf_counter` and asserted against
+        ``max_response_time``; backoff and failed-attempt time are deliberately
+        excluded so the performance gate reflects real server latency. The
+        ``Authorization`` header (when configured) is applied automatically by
+        the underlying session.
 
         Args:
             method (str): HTTP method in upper case, e.g. ``"GET"``.
@@ -92,7 +103,8 @@ class ApiClient:
                 target the ``base_url`` itself.
             **kwargs (Any): Additional keyword arguments forwarded verbatim
                 to :meth:`requests.Session.request` (e.g. ``params``,
-                ``json``, ``headers``).
+                ``json``, ``headers``). A ``timeout`` may be supplied to
+                override the configured ``request_timeout`` for this call.
 
         Returns:
             requests.Response: The HTTP response object returned by the
@@ -101,18 +113,31 @@ class ApiClient:
         Raises:
             AssertionError: If the measured response time exceeds the
                 configured ``max_response_time`` threshold.
+            requests.ConnectionError: If every attempt fails to connect.
+            requests.Timeout: If every attempt exceeds ``request_timeout``.
             requests.HTTPError: If the server returns a 4xx or 5xx status
                 code, raised by :meth:`~requests.Response.raise_for_status`.
         """
         url = f"{self._base_url}{path}"
-        start = time.perf_counter()
-        response = self._session.request(method, url, **kwargs)
-        elapsed = time.perf_counter() - start
-        assert elapsed <= self._max_response_time, (
-            f"Response time {elapsed:.3f}s exceeded threshold of {self._max_response_time}s for {url}"
-        )
-        response.raise_for_status()
-        return response
+        kwargs.setdefault("timeout", self._request_timeout)
+
+        for attempt in range(self._max_retries + 1):
+            start = time.perf_counter()
+            try:
+                response = self._session.request(method, url, **kwargs)
+            except (requests.ConnectionError, requests.Timeout):
+                if attempt >= self._max_retries:
+                    raise
+                time.sleep(self._retry_backoff * (2 ** attempt))
+                continue
+            elapsed = time.perf_counter() - start
+            assert elapsed <= self._max_response_time, (
+                f"Response time {elapsed:.3f}s exceeded threshold of {self._max_response_time}s for {url}"
+            )
+            response.raise_for_status()
+            return response
+
+        raise RuntimeError("unreachable: retry loop exited without returning or raising")
 
     def get(self, path: str, **kwargs: Any) -> requests.Response:
         """Issue a GET request through the client wrapper.
