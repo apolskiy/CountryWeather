@@ -1,7 +1,0 @@
-[
-  {"city": "Berlin",   "latitude":  52.52,  "longitude":  13.41},
-  {"city": "Tokyo",    "latitude":  35.69,  "longitude": 139.69},
-  {"city": "New York", "latitude":  40.71,  "longitude": -74.01},
-  {"city": "Sydney",   "latitude": -33.87,  "longitude": 151.21},
-  {"city": "Lagos",    "latitude":   6.46,  "longitude":   3.39}
-]

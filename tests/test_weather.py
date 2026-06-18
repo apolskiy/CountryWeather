@@ -7,27 +7,25 @@ Covers the following endpoint contracts:
 * ``GET /forecast?latitude=…&longitude=…&current_weather=true&hourly=temperature_2m``
   — combined current-weather and hourly forecast validation.
 
-Parametrized coordinates for the existing suite are loaded from
-``test_data/coordinates.json``; the hourly forecast suite is parametrized
-from ``test_data/cities.json``. Every response is validated through a schema
-class from :mod:`validators.weather_schema`.
+Both tests declare an ``entity`` parameter and are parametrized by the
+``pytest_generate_tests`` hook in :mod:`conftest` over every record in
+``test_data/master_entities.json`` — the same single source of truth consumed
+by the country suite. The ``city``, ``latitude``, and ``longitude`` fields of
+each record drive the forecast lookups. Every response is validated through a
+schema class from :mod:`validators.weather_schema`.
 
 Run this suite exclusively::
 
     pytest --env=weather
 """
 
-import json
 import logging
-import pytest
+
 import allure
-from pathlib import Path
+import pytest
 
 from utils.api_client import ApiClient
 from validators.weather_schema import WeatherForecastSchema, WeatherSchema
-
-_COORDINATES = json.loads((Path(__file__).parent.parent / "test_data" / "coordinates.json").read_text())
-_CITIES = json.loads((Path(__file__).parent.parent / "test_data" / "cities.json").read_text())
 
 logger = logging.getLogger(__name__)
 
@@ -38,20 +36,21 @@ logger = logging.getLogger(__name__)
 class TestWeather:
     """Test suite for the Open-Meteo Weather API forecast endpoint.
 
-    ``test_current_weather_by_coordinates`` is parametrized over
-    ``test_data/coordinates.json`` and validates
+    Both tests declare an ``entity`` parameter and iterate over
+    ``test_data/master_entities.json`` via the ``pytest_generate_tests`` hook
+    in ``conftest.py``.
+
+    ``test_current_weather_by_coordinates`` validates
     :class:`~validators.weather_schema.WeatherSchema`.
 
-    ``test_forecast_by_city`` is parametrized over
-    ``test_data/cities.json`` and validates
+    ``test_forecast_by_city`` validates
     :class:`~validators.weather_schema.WeatherForecastSchema`, which covers
     both the ``current_weather`` and ``hourly`` response blocks.
     """
 
     @allure.story("Current Weather by Coordinates — Schema and Data Integrity")
-    @pytest.mark.parametrize("location", _COORDINATES, ids=[c["city"] for c in _COORDINATES])
     def test_current_weather_by_coordinates(
-        self, api_client_fixture: ApiClient, location: dict
+        self, api_client_fixture: ApiClient, entity: dict
     ) -> None:
         """Verify schema correctness and data integrity for coordinate-based weather lookups.
 
@@ -64,8 +63,9 @@ class TestWeather:
         Args:
             api_client_fixture (ApiClient): Environment-scoped HTTP client
                 provided by ``conftest.py``.
-            location (dict): A single entry from ``test_data/coordinates.json``
-                containing ``city``, ``latitude``, and ``longitude`` keys.
+            entity (dict): A single record from
+                ``test_data/master_entities.json`` containing ``city``,
+                ``latitude``, and ``longitude`` keys (among others).
 
         Returns:
             None
@@ -75,10 +75,10 @@ class TestWeather:
                 or coordinate-tolerance assertion does not hold.
         """
         try:
-            with allure.step(f"GET /forecast for {location['city']} ({location['latitude']}, {location['longitude']})"):
+            with allure.step(f"GET /forecast for {entity['city']} ({entity['latitude']}, {entity['longitude']})"):
                 response = api_client_fixture.get("/forecast", params={
-                    "latitude": location["latitude"],
-                    "longitude": location["longitude"],
+                    "latitude": entity["latitude"],
+                    "longitude": entity["longitude"],
                     "current_weather": "true",
                 })
                 assert response.status_code == 200, (
@@ -94,11 +94,11 @@ class TestWeather:
                 )
 
             with allure.step("Assert returned coordinates match request within snapping tolerance"):
-                assert abs(validated.latitude - location["latitude"]) < 1.0, (
-                    f"Latitude mismatch: requested {location['latitude']}, got {validated.latitude}"
+                assert abs(validated.latitude - entity["latitude"]) < 1.0, (
+                    f"Latitude mismatch: requested {entity['latitude']}, got {validated.latitude}"
                 )
-                assert abs(validated.longitude - location["longitude"]) < 1.0, (
-                    f"Longitude mismatch: requested {location['longitude']}, got {validated.longitude}"
+                assert abs(validated.longitude - entity["longitude"]) < 1.0, (
+                    f"Longitude mismatch: requested {entity['longitude']}, got {validated.longitude}"
                 )
 
             with allure.step("Assert current weather values are within physically valid ranges"):
@@ -109,17 +109,15 @@ class TestWeather:
                 assert cw.is_day in (0, 1), f"is_day must be 0 or 1, got {cw.is_day}"
                 assert cw.interval > 0, f"Non-positive interval: {cw.interval}"
         except AssertionError as exc:
-            logger.error("test_current_weather_by_coordinates failed for %s: %s", location["city"], exc)
+            logger.error("test_current_weather_by_coordinates failed for %s: %s", entity["city"], exc)
             raise
 
     @allure.story("Hourly Forecast by City — Schema, Temperature Range, and Entry Count")
-    @pytest.mark.parametrize("city", _CITIES, ids=[c["city"] for c in _CITIES])
-    def test_forecast_by_city(self, api_client_fixture: ApiClient, city: dict) -> None:
+    def test_forecast_by_city(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify schema correctness and forecast integrity for city-based hourly lookups.
 
-        Issues a ``GET /forecast`` request (full URL: ``/v1/forecast``) with
-        both ``current_weather=true`` and ``hourly=temperature_2m``, then
-        validates the full response through
+        Issues a ``GET /forecast`` request with both ``current_weather=true``
+        and ``hourly=temperature_2m``, then validates the full response through
         :class:`~validators.weather_schema.WeatherForecastSchema`. Asserts
         that the current temperature is within the physically valid range of
         -80 °C to 60 °C, that the hourly dataset contains at least one entry,
@@ -128,8 +126,9 @@ class TestWeather:
         Args:
             api_client_fixture (ApiClient): Environment-scoped HTTP client
                 provided by ``conftest.py``.
-            city (dict): A single entry from ``test_data/cities.json``
-                containing ``city``, ``latitude``, and ``longitude`` keys.
+            entity (dict): A single record from
+                ``test_data/master_entities.json`` containing ``city``,
+                ``latitude``, and ``longitude`` keys (among others).
 
         Returns:
             None
@@ -140,10 +139,10 @@ class TestWeather:
                 not hold.
         """
         try:
-            with allure.step(f"GET /forecast for {city['city']} ({city['latitude']}, {city['longitude']})"):
+            with allure.step(f"GET /forecast for {entity['city']} ({entity['latitude']}, {entity['longitude']})"):
                 response = api_client_fixture.get("/forecast", params={
-                    "latitude": city["latitude"],
-                    "longitude": city["longitude"],
+                    "latitude": entity["latitude"],
+                    "longitude": entity["longitude"],
                     "current_weather": "true",
                     "hourly": "temperature_2m",
                 })
@@ -155,7 +154,7 @@ class TestWeather:
                 validated = WeatherForecastSchema.from_dict(response.json())
                 logger.info(
                     "Schema validated — city=%s, timezone=%s, hourly_entries=%d",
-                    city["city"],
+                    entity["city"],
                     validated.timezone,
                     len(validated.hourly.temperature_2m),
                 )
@@ -163,19 +162,19 @@ class TestWeather:
             with allure.step("Assert current temperature is within valid range (-80 °C to 60 °C)"):
                 temp = validated.current_weather.temperature
                 assert -80.0 <= temp <= 60.0, (
-                    f"Temperature {temp}°C out of range [-80, 60] for {city['city']}"
+                    f"Temperature {temp}°C out of range [-80, 60] for {entity['city']}"
                 )
 
             with allure.step("Assert hourly forecast contains at least one entry"):
                 hourly_count = len(validated.hourly.temperature_2m)
                 assert hourly_count > 0, (
-                    f"Expected at least 1 hourly entry for {city['city']}, got {hourly_count}"
+                    f"Expected at least 1 hourly entry for {entity['city']}, got {hourly_count}"
                 )
 
             with allure.step("Assert timezone field is a non-empty string"):
                 assert validated.timezone != "", (
-                    f"Empty timezone field for {city['city']}"
+                    f"Empty timezone field for {entity['city']}"
                 )
         except AssertionError as exc:
-            logger.error("test_forecast_by_city failed for %s: %s", city["city"], exc)
+            logger.error("test_forecast_by_city failed for %s: %s", entity["city"], exc)
             raise

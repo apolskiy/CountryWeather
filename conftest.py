@@ -14,6 +14,7 @@ when ``--env`` is supplied the non-matching items are deselected before the
 run begins; when omitted, both marker groups execute in full.
 """
 
+import json
 import os
 import platform
 import sys
@@ -26,6 +27,7 @@ from utils.api_client import ApiClient
 
 _CONFIG_PATH = Path(__file__).parent / "config" / "environments.yaml"
 _ALLURE_RESULTS_DIR = Path(__file__).parent / "allure-results"
+_MASTER_ENTITIES_PATH = Path(__file__).parent / "test_data" / "master_entities.json"
 _SUPPORTED_ENVS = ("countries", "weather")
 
 _DEFAULT_BASE_URL = "https://restcountries.com/v3.1"
@@ -89,6 +91,52 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         "".join(f"{key}={value}\n" for key, value in metadata.items()),
         encoding="utf-8",
     )
+
+
+def _load_master_entities() -> list[dict]:
+    """Load the unified entity dataset from ``test_data/master_entities.json``.
+
+    This file is the single source of truth for all entity information shared
+    across the country and weather suites: country common name, ISO 3166-1
+    alpha-2 code, geographic region, representative city, and that city's
+    latitude/longitude coordinates.
+
+    Returns:
+        list[dict]: A list of entity records, each containing the keys
+        ``name``, ``cca2``, ``region``, ``city``, ``latitude``, and
+        ``longitude``.
+
+    Raises:
+        FileNotFoundError: If ``test_data/master_entities.json`` is absent.
+        json.JSONDecodeError: If the file does not contain valid JSON.
+    """
+    with open(_MASTER_ENTITIES_PATH, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
+    """Parametrize any test requesting an ``entity`` argument from the master dataset.
+
+    Implements data-driven testing centrally: every test function (in any
+    module) that declares an ``entity`` parameter is automatically parametrized
+    over each record in ``test_data/master_entities.json``. Test cases are
+    identified by the entity's ``name`` so reports remain cleanly segmented.
+
+    Args:
+        metafunc (pytest.Metafunc): The metafunc object for the test function
+            being collected, used to inspect requested fixtures and apply
+            parametrization.
+
+    Returns:
+        None
+    """
+    if "entity" in metafunc.fixturenames:
+        entities = _load_master_entities()
+        metafunc.parametrize(
+            "entity",
+            entities,
+            ids=[entity["name"] for entity in entities],
+        )
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

@@ -38,6 +38,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Tests
+        env:
+          RESTCOUNTRIES_API_KEY: ${{ secrets.RESTCOUNTRIES_API_KEY }}
         run: |
           mkdir -p test_results allure-results
           

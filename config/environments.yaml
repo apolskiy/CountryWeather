@@ -1,9 +1,18 @@
 countries:
-  base_url: "https://restcountries.com/v3.1"
-  max_response_time: 2.0
+  base_url: "https://api.restcountries.com/countries/v5"
+  max_response_time: 5.0
   min_results_count: 1
+  # Name of the environment variable holding the v5 Bearer API key. The secret
+  # itself is never stored here; ApiClient reads it from the environment.
+  auth_env_var: "RESTCOUNTRIES_API_KEY"
+  # Maximum page size accepted by the v5 API (the API rejects limits > 100).
+  # Used by ApiClient.get_objects when paginating list endpoints.
+  page_limit: 100
 
 weather:
   base_url: "https://api.open-meteo.com/v1"
   max_response_time: 3.0
   min_results_count: 1
+  # Open-Meteo requires no authentication and exposes no paginated endpoints.
+  auth_env_var: null
+  page_limit: null

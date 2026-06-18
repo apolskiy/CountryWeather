@@ -1,19 +1,22 @@
-"""Extended test suite for the REST Countries API (restcountries.com/v3.1).
+"""Extended test suite for the REST Countries API (api.restcountries.com v5).
 
 Provides standalone coverage complementary to ``tests/test_countries.py``,
 targeting the following endpoint contracts:
 
-* ``GET /region/europe`` — regional result-count threshold.
-* ``GET /name/germany`` — full schema enforcement via
+* ``GET /region/europe`` — regional result-count threshold (paginated).
+* ``GET /names.common/germany`` — full schema enforcement via
   :class:`~validators.country_schema.CountrySchema`.
-* ``GET /all?fields=name,population`` — population field integrity sweep.
+* ``GET /`` (root) — population field integrity sweep (paginated, field
+  filtered).
 * Cross-reference: Germany's region is resolved dynamically, then verified
   against the corresponding ``/region/{region}`` result set.
-* Negative: a non-existent country name must yield HTTP 404.
+* Negative: a non-existent country name must yield an empty result set
+  (v5 returns HTTP 200 with ``data.objects == []`` rather than a 404).
 
 Network interactions are performed exclusively through the ``api_client_fixture``
-provided by ``conftest.py``. Schema enforcement is delegated to classes in
-:mod:`validators.country_schema`.
+provided by ``conftest.py``; the v5 ``data.objects`` envelope is unwrapped by
+:meth:`utils.api_client.ApiClient.get_objects`. Schema enforcement is delegated
+to classes in :mod:`validators.country_schema`.
 
 Run this suite exclusively::
 
@@ -24,7 +27,6 @@ import logging
 
 import allure
 import pytest
-import requests
 
 from utils.api_client import ApiClient
 from validators.country_schema import CountryPopulationSchema, CountrySchema
@@ -36,11 +38,11 @@ logger = logging.getLogger(__name__)
 @allure.epic("Environment-Driven API Validation")
 @allure.feature("REST Countries API — Extended Coverage")
 class TestCountryApi:
-    """Extended test suite for the REST Countries API.
+    """Extended test suite for the REST Countries v5 API.
 
     Each test exercises a distinct contract: regional count thresholds,
     full schema enforcement, field-level integrity sweeps, dynamic
-    cross-referencing, and negative HTTP-error handling. All requests
+    cross-referencing, and negative empty-result handling. All requests
     are routed through ``api_client_fixture``.
     """
 
@@ -48,9 +50,10 @@ class TestCountryApi:
     def test_europe_region_count(self, api_client_fixture: ApiClient) -> None:
         """Verify that ``/region/europe`` returns more than 40 countries.
 
-        Sends a ``GET /region/europe`` request and asserts the response list
-        contains more than 40 entries, confirming that the regional endpoint
-        returns a meaningful dataset rather than a truncated or empty result.
+        Sends a paginated ``GET /region/europe`` request and asserts the
+        unwrapped object list contains more than 40 entries, confirming that
+        the regional endpoint returns a meaningful dataset rather than a
+        truncated or empty result.
 
         Args:
             api_client_fixture (ApiClient): Environment-scoped HTTP client
@@ -63,14 +66,10 @@ class TestCountryApi:
             AssertionError: If the result count is 40 or fewer.
         """
         try:
-            with allure.step("GET /region/europe"):
-                response = api_client_fixture.get("/region/europe")
-                assert response.status_code == 200, (
-                    f"Expected HTTP 200 from /region/europe, got {response.status_code}"
-                )
+            with allure.step("GET /region/europe (paginated)"):
+                results = api_client_fixture.get_objects("/region/europe", paginate=True)
 
             with allure.step("Assert result count exceeds 40"):
-                results = response.json()
                 logger.info("/region/europe returned %d countries", len(results))
                 assert len(results) > 40, (
                     f"Expected more than 40 European countries, got {len(results)}"
@@ -81,12 +80,12 @@ class TestCountryApi:
 
     @allure.story("Schema — Germany Full Structural Validation")
     def test_germany_schema_validation(self, api_client_fixture: ApiClient) -> None:
-        """Verify full schema correctness for a ``/name/germany`` response.
+        """Verify full schema correctness for a ``/names.common/germany`` response.
 
-        Sends a ``GET /name/germany`` request and validates the first result
-        through :class:`~validators.country_schema.CountrySchema`, confirming
-        that ``name``, ``capital``, ``population``, ``currencies``, and
-        ``languages`` are present, correctly typed, and non-empty.
+        Sends a ``GET /names.common/germany`` request and validates the first
+        result through :class:`~validators.country_schema.CountrySchema`,
+        confirming that ``name``, ``capital``, ``population``, ``currencies``,
+        and ``languages`` are present, correctly typed, and non-empty.
 
         Args:
             api_client_fixture (ApiClient): Environment-scoped HTTP client
@@ -100,14 +99,11 @@ class TestCountryApi:
                 is absent, incorrectly typed, or empty.
         """
         try:
-            with allure.step("GET /name/germany"):
-                response = api_client_fixture.get("/name/germany")
-                assert response.status_code == 200, (
-                    f"Expected HTTP 200 from /name/germany, got {response.status_code}"
-                )
+            with allure.step("GET /names.common/germany"):
+                results = api_client_fixture.get_objects("/names.common/germany")
 
             with allure.step("Validate CountrySchema — name, capital, population, currencies, languages"):
-                validated = CountrySchema.from_dict(response.json()[0])
+                validated = CountrySchema.from_dict(results[0])
                 logger.info(
                     "Schema validated — name='%s', capital=%s, population=%d",
                     validated.name.common,
@@ -138,14 +134,15 @@ class TestCountryApi:
 
     @allure.story("Field Integrity — All Countries Population Sweep")
     def test_all_countries_population_integrity(self, api_client_fixture: ApiClient) -> None:
-        """Verify population is a non-negative integer for every ``/all`` entry.
+        """Verify population is a non-negative integer for every country.
 
-        Sends a ``GET /all?fields=name,population`` request and iterates over
-        every result, validating each through
+        Sends a paginated ``GET /`` request filtered to
+        ``response_fields=names.common,population`` and iterates over every
+        result, validating each through
         :class:`~validators.country_schema.CountryPopulationSchema` and
-        asserting that ``population`` is not negative. Five uninhabited
-        territories (e.g. Bouvet Island) legitimately report ``population: 0``
-        in the API and are treated as valid; only negative values are flagged.
+        asserting that ``population`` is not negative. Uninhabited territories
+        legitimately report ``population: 0`` in the API and are treated as
+        valid; only negative values are flagged.
 
         Args:
             api_client_fixture (ApiClient): Environment-scoped HTTP client
@@ -159,14 +156,14 @@ class TestCountryApi:
                 a negative population.
         """
         try:
-            with allure.step("GET /all?fields=name,population"):
-                response = api_client_fixture.get("/all", params={"fields": "name,population"})
-                assert response.status_code == 200, (
-                    f"Expected HTTP 200 from /all, got {response.status_code}"
+            with allure.step("GET / (paginated, response_fields=names.common,population)"):
+                results = api_client_fixture.get_objects(
+                    "",
+                    params={"response_fields": "names.common,population"},
+                    paginate=True,
                 )
 
             with allure.step("Assert population >= 0 for every country entry"):
-                results = response.json()
                 logger.info("Sweeping population field across %d entries", len(results))
                 failures = []
                 for entry in results:
@@ -177,7 +174,7 @@ class TestCountryApi:
                         continue
                     if validated.population < 0:
                         failures.append(
-                            f"'{validated.name.common}' has invalid population: {validated.population}"
+                            f"'{validated.name_common}' has invalid population: {validated.population}"
                         )
                 assert not failures, (
                     f"{len(failures)} population integrity failure(s):\n" + "\n".join(failures)
@@ -191,9 +188,10 @@ class TestCountryApi:
     def test_germany_cross_reference_region(self, api_client_fixture: ApiClient) -> None:
         """Verify Germany appears in the results for its own dynamically resolved region.
 
-        Sends a ``GET /name/germany`` request and extracts the ``region`` and
-        ``name.common`` fields via :class:`~validators.country_schema.CountrySchema`.
-        Then sends a ``GET /region/{region}`` request and asserts that Germany's
+        Sends a ``GET /names.common/germany`` request and extracts the
+        ``region`` and ``name.common`` fields via
+        :class:`~validators.country_schema.CountrySchema`. Then sends a
+        paginated ``GET /region/{region}`` request and asserts that Germany's
         common name is present in the returned country list.
 
         Args:
@@ -209,26 +207,19 @@ class TestCountryApi:
                 schema validation.
         """
         try:
-            with allure.step("GET /name/germany — resolve common name and region"):
-                germany_response = api_client_fixture.get("/name/germany")
-                assert germany_response.status_code == 200, (
-                    f"Expected HTTP 200 from /name/germany, got {germany_response.status_code}"
-                )
-                germany = CountrySchema.from_dict(germany_response.json()[0])
+            with allure.step("GET /names.common/germany — resolve common name and region"):
+                germany_results = api_client_fixture.get_objects("/names.common/germany")
+                germany = CountrySchema.from_dict(germany_results[0])
                 region = germany.region
                 common_name = germany.name.common
                 logger.info("Resolved country='%s', region='%s'", common_name, region)
 
-            with allure.step(f"GET /region/{region} — fetch all countries in Germany's region"):
-                region_response = api_client_fixture.get(f"/region/{region}")
-                assert region_response.status_code == 200, (
-                    f"Expected HTTP 200 from /region/{region}, got {region_response.status_code}"
-                )
-                region_results = region_response.json()
+            with allure.step(f"GET /region/{region} — fetch all countries in Germany's region (paginated)"):
+                region_results = api_client_fixture.get_objects(f"/region/{region}", paginate=True)
                 logger.info("/region/%s returned %d countries", region, len(region_results))
 
             with allure.step(f"Assert '{common_name}' is present in /region/{region} results"):
-                region_names = {entry["name"]["common"] for entry in region_results}
+                region_names = {entry["names"]["common"] for entry in region_results}
                 assert common_name in region_names, (
                     f"'{common_name}' not found among {len(region_names)} countries "
                     f"returned by /region/{region}"
@@ -237,15 +228,14 @@ class TestCountryApi:
             logger.error("test_germany_cross_reference_region failed: %s", exc)
             raise
 
-    @allure.story("Negative — Non-existent Country Name Returns HTTP 404")
-    def test_nonexistent_country_returns_404(self, api_client_fixture: ApiClient) -> None:
-        """Verify that a lookup for a non-existent country name yields HTTP 404.
+    @allure.story("Negative — Non-existent Country Name Returns an Empty Result Set")
+    def test_nonexistent_country_returns_empty(self, api_client_fixture: ApiClient) -> None:
+        """Verify that a lookup for a non-existent country name yields no results.
 
-        Sends a ``GET /name/zzz_nonexistent_country_xyz`` request. Because
-        :class:`~utils.api_client.ApiClient` calls
-        :meth:`~requests.Response.raise_for_status` internally, a 4xx response
-        surfaces as :exc:`requests.HTTPError`. The test asserts that the
-        embedded status code is exactly 404.
+        Sends a ``GET /names.common/{invalid}`` request. The v5 API responds
+        with HTTP 200 and an empty ``data.objects`` array for unknown names
+        (rather than a 404), so the test asserts that the unwrapped object
+        list is empty.
 
         Args:
             api_client_fixture (ApiClient): Environment-scoped HTTP client
@@ -255,22 +245,24 @@ class TestCountryApi:
             None
 
         Raises:
-            AssertionError: If the raised :exc:`requests.HTTPError` does not
-                carry an HTTP 404 status code.
+            AssertionError: If the lookup returns any results for a name that
+                does not correspond to a real country.
         """
         invalid_name = "zzz_nonexistent_country_xyz"
 
-        with allure.step(f"GET /name/{invalid_name} — expect requests.HTTPError"):
-            with pytest.raises(requests.HTTPError) as exc_info:
-                api_client_fixture.get(f"/name/{invalid_name}")
+        try:
+            with allure.step(f"GET /names.common/{invalid_name}"):
+                results = api_client_fixture.get_objects(f"/names.common/{invalid_name}")
 
-        with allure.step("Assert embedded HTTP status code is 404"):
-            status_code = exc_info.value.response.status_code
-            logger.info(
-                "Non-existent country '%s' correctly returned HTTP %d",
-                invalid_name,
-                status_code,
-            )
-            assert status_code == 404, (
-                f"Expected HTTP 404 for non-existent country '{invalid_name}', got {status_code}"
-            )
+            with allure.step("Assert the result set is empty"):
+                logger.info(
+                    "Non-existent country '%s' correctly returned %d results",
+                    invalid_name,
+                    len(results),
+                )
+                assert results == [], (
+                    f"Expected no results for non-existent country '{invalid_name}', got {len(results)}"
+                )
+        except AssertionError as exc:
+            logger.error("test_nonexistent_country_returns_empty failed: %s", exc)
+            raise
