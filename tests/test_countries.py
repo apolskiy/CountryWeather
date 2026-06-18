@@ -299,3 +299,42 @@ class TestCountries:
         except AssertionError as exc:
             logger.error("test_country_present_in_region failed for %s: %s", entity["name"], exc)
             raise
+
+    @allure.story("Negative — Non-existent Country Name Returns an Empty Result Set")
+    def test_nonexistent_country_returns_empty(self, api_client_fixture: ApiClient) -> None:
+        """Verify that a lookup for a non-existent country name yields no results.
+
+        Issues a ``GET /names.common/{invalid}`` request. The v5 API responds
+        with HTTP 200 and an empty ``data.objects`` array for unknown names
+        (rather than a 404), so the test asserts that the unwrapped object
+        list is empty.
+
+        Args:
+            api_client_fixture (ApiClient): Environment-scoped HTTP client
+                provided by ``conftest.py``.
+
+        Returns:
+            None
+
+        Raises:
+            AssertionError: If the lookup returns any results for a name that
+                does not correspond to a real country.
+        """
+        invalid_name = "zzz_nonexistent_country_xyz"
+
+        try:
+            with allure.step(f"GET /names.common/{invalid_name}"):
+                results = api_client_fixture.get_objects(f"/names.common/{invalid_name}")
+
+            with allure.step("Assert the result set is empty"):
+                logger.info(
+                    "Non-existent country '%s' correctly returned %d results",
+                    invalid_name,
+                    len(results),
+                )
+                assert results == [], (
+                    f"Expected no results for non-existent country '{invalid_name}', got {len(results)}"
+                )
+        except AssertionError as exc:
+            logger.error("test_nonexistent_country_returns_empty failed: %s", exc)
+            raise

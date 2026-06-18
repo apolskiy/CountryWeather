@@ -42,10 +42,10 @@ class ApiClient:
                 ``base_url`` (str), ``max_response_time`` (float),
                 ``min_results_count`` (int), ``auth_env_var`` (str or None),
                 ``page_limit`` (int or None), ``request_timeout`` (float),
-                ``max_retries`` (int), and ``retry_backoff`` (float). A missing
-                key raises :exc:`KeyError` immediately. When ``auth_env_var``
-                is a non-empty string, the named environment variable must be
-                set.
+                ``max_retries`` (int), ``retry_backoff`` (float), and
+                ``retry_statuses`` (list of int). A missing key raises
+                :exc:`KeyError` immediately. When ``auth_env_var`` is a
+                non-empty string, the named environment variable must be set.
 
         Raises:
             KeyError: If any required configuration key is absent from
@@ -60,6 +60,7 @@ class ApiClient:
         self._request_timeout: float = env_config["request_timeout"]
         self._max_retries: int = env_config["max_retries"]
         self._retry_backoff: float = env_config["retry_backoff"]
+        self._retry_statuses: frozenset[int] = frozenset(env_config["retry_statuses"])
         self._session = requests.Session()
 
         if self._auth_env_var:
@@ -88,9 +89,11 @@ class ApiClient:
         ``base_url`` and issues the request with a hard ``request_timeout``
         (so a stalled connection fails fast rather than hanging indefinitely).
         Transient transport failures (:class:`requests.ConnectionError` and
-        :class:`requests.Timeout`) are retried up to ``max_retries`` times with
-        exponential backoff. The round-trip of the *successful* attempt is
-        timed with :func:`time.perf_counter` and asserted against
+        :class:`requests.Timeout`) and retryable HTTP statuses (those listed in
+        ``retry_statuses``, e.g. ``429`` rate-limiting) are retried up to
+        ``max_retries`` times with exponential backoff, honouring a server
+        ``Retry-After`` header when present. The round-trip of the *successful*
+        attempt is timed with :func:`time.perf_counter` and asserted against
         ``max_response_time``; backoff and failed-attempt time are deliberately
         excluded so the performance gate reflects real server latency. The
         ``Authorization`` header (when configured) is applied automatically by
@@ -130,6 +133,11 @@ class ApiClient:
                     raise
                 time.sleep(self._retry_backoff * (2 ** attempt))
                 continue
+
+            if response.status_code in self._retry_statuses and attempt < self._max_retries:
+                time.sleep(self._retry_delay(response, attempt))
+                continue
+
             elapsed = time.perf_counter() - start
             assert elapsed <= self._max_response_time, (
                 f"Response time {elapsed:.3f}s exceeded threshold of {self._max_response_time}s for {url}"
@@ -138,6 +146,28 @@ class ApiClient:
             return response
 
         raise RuntimeError("unreachable: retry loop exited without returning or raising")
+
+    def _retry_delay(self, response: requests.Response, attempt: int) -> float:
+        """Compute the backoff delay before retrying a retryable response.
+
+        Prefers the server's ``Retry-After`` header (interpreted as a number of
+        seconds) when present and numeric; otherwise falls back to exponential
+        backoff based on ``retry_backoff``.
+
+        Args:
+            response (requests.Response): The retryable response (e.g. a 429).
+            attempt (int): Zero-based index of the attempt that just failed.
+
+        Returns:
+            float: Number of seconds to sleep before the next attempt.
+        """
+        header = response.headers.get("Retry-After")
+        if header is not None:
+            try:
+                return float(header)
+            except ValueError:
+                pass
+        return self._retry_backoff * (2 ** attempt)
 
     def get(self, path: str, **kwargs: Any) -> requests.Response:
         """Issue a GET request through the client wrapper.

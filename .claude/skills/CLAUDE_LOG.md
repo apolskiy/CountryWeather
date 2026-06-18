@@ -75,7 +75,17 @@ To optimize framework scaffolding, two independent workstreams were executed sim
 **The Solution**:
 1. **Hard Timeout**: Added a config-driven `request_timeout` (per-attempt network ceiling) so a stalled connection fails in seconds, not minutes.
 2. **Transient Retries**: Added `max_retries` + exponential `retry_backoff` for `ConnectionError`/`Timeout`, so brief blips self-recover instead of failing the build.
-3. **Honest SLAs**: The response-time gate now times only the *successful* attempt — backoff and failed-attempt latency are excluded, so `max_response_time` still reflects true server performance.
-4. **Safety Net**: Added `timeout-minutes: 15` to the CI job so no future hang can run unbounded.
+3. **Rate-Limit Backoff**: Added `retry_statuses` (e.g. `429`, `502/503/504`) so the burst rate limit is retried — honouring the server's `Retry-After` header — rather than hard-failing the run. (Confirmed via the dashboard: failures were burst 429s, not monthly-quota exhaustion — only ~115 of 500 requests used.)
+4. **Honest SLAs**: The response-time gate now times only the *successful* attempt — backoff and failed-attempt latency are excluded, so `max_response_time` still reflects true server performance.
+5. **Safety Net**: Added `timeout-minutes: 15` to the CI job so no future hang can run unbounded.
 
 **Principle**: Infrastructure flakiness is managed at the network layer (bounded timeout + retry), never by silencing assertions or inflating performance thresholds.
+
+---
+
+## 10. Suite Consolidation: Eliminating Redundant Coverage
+**Context**: After the data-driven refactor, `test_country_api.py` had become ~80% redundant with the parametrized `test_countries.py` (duplicate region count, Germany schema, all-countries sweep, and cross-reference), nearly doubling the REST Countries request volume per run — enough to trip the API's burst rate limit (429) in CI even with monthly quota to spare.
+
+**The Solution**: Folded the only unique case (the non-existent-name negative test) into `test_countries.py` and deleted `test_country_api.py`. Combined with the `Retry-After`-aware 429 backoff, this keeps each run lean and under the burst limit.
+
+**Impact**: Removed the duplicate paginated `/all` sweep and cross-reference calls; cut per-run country requests by ~20% and eliminated the rate-limit failures.

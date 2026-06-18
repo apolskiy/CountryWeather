@@ -76,8 +76,9 @@ cross-cutting concerns and keeps test files focused on functional assertions.
 * **Envelope handling**: `get_objects()` unwraps the v5 `data.objects` envelope and paginates list
   endpoints (page size capped at 100 by the API).
 * **Timeout & retries**: A hard per-attempt `request_timeout` prevents indefinite hangs; transient
-  `ConnectionError`/`Timeout` failures are retried with exponential backoff (`max_retries`,
-  `retry_backoff`). All thresholds live in `config/environments.yaml` — zero inline defaults.
+  `ConnectionError`/`Timeout` failures and retryable statuses (`429` rate-limiting, `502/503/504`)
+  are retried with exponential backoff, honouring the server's `Retry-After` header. All thresholds
+  live in `config/environments.yaml` — zero inline defaults.
 * **Performance gate**: Each call asserts against `max_response_time`, timing only the successful
   attempt so the SLA reflects real server latency rather than retry/backoff overhead.
 
