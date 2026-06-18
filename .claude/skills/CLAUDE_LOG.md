@@ -26,13 +26,14 @@ To optimize framework scaffolding, two independent workstreams were executed sim
 
 ---
 
-## 4. API Contract Migration: REST Countries v3 to v5
-**The Problem**: Upstream provider deprecated v3, introducing a mandatory API key requirement.
+## 4. API Contract Migration: REST Countries v3.1 to v5
+**The Problem**: The upstream provider hard-deprecated all pre-v5 versions (v1–v4.1 now return an error envelope), introducing a mandatory API-key requirement and a new response shape.
 
 **The Solution**: 
-1. **Authentication Injection**: Updated `ApiClient` to pass `RESTCOUNTRIES_API_KEY` via headers.
-2. **Secret Governance**: Implemented environment-variable injection using GitHub Actions Secrets. The key is never logged or hardcoded.
-3. **Validation**: Updated Pydantic validators to accommodate the v5 schema.
+1. **Authentication Injection**: `ApiClient` attaches `RESTCOUNTRIES_API_KEY` as a `Bearer` token, read from the process environment (never logged or hardcoded) and supplied in CI via GitHub Actions Secrets.
+2. **Envelope & Pagination**: Added `ApiClient.get_objects` to unwrap the v5 `data.objects` envelope and transparently paginate list endpoints (the API caps page size at 100).
+3. **Endpoint & Schema Remap**: Migrated paths (`/names.common`, `/codes.alpha_2`, `/region`) and rewrote the dataclass validators for the v5 field model (`names.*`, `codes.alpha_2`, `capitals`, list-based `currencies`/`languages`, `flag`).
+4. **Negative Contract**: v5 returns HTTP 200 with an empty result set (not a 404) for unknown names; the negative test asserts emptiness accordingly.
 
 ---
 
@@ -65,3 +66,16 @@ To optimize framework scaffolding, two independent workstreams were executed sim
 
 ## 8. Extensibility Audit
 **Action**: Implemented a shared `test_data` utility layer, ensuring cross-reference tests remain DRY (Don't Repeat Yourself) and maintainable.
+
+---
+
+## 9. Network Resilience Hardening
+**The Problem**: A CI run hung for ~18 minutes on a single test. Root cause: the `ApiClient` issued `requests` calls with no timeout (`read timeout=None`), so a transient TLS-handshake stall to Open-Meteo blocked until the kernel killed the socket (`Errno 110`) — turning a momentary network blip into a red, multi-minute build.
+
+**The Solution**:
+1. **Hard Timeout**: Added a config-driven `request_timeout` (per-attempt network ceiling) so a stalled connection fails in seconds, not minutes.
+2. **Transient Retries**: Added `max_retries` + exponential `retry_backoff` for `ConnectionError`/`Timeout`, so brief blips self-recover instead of failing the build.
+3. **Honest SLAs**: The response-time gate now times only the *successful* attempt — backoff and failed-attempt latency are excluded, so `max_response_time` still reflects true server performance.
+4. **Safety Net**: Added `timeout-minutes: 15` to the CI job so no future hang can run unbounded.
+
+**Principle**: Infrastructure flakiness is managed at the network layer (bounded timeout + retry), never by silencing assertions or inflating performance thresholds.

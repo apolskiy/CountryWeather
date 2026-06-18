@@ -1,7 +1,4 @@
-Aleksandr Polskiy<br>
-# CountryWeather API Automation Framework
-
-A robust Quality Engineering framework designed for testing UCaaS/CCaaS-style API architectures. Features automated schema enforcement, data-driven test generation, and detailed Allure reporting.
+Aleksandr Polskiy
 
 # CountryWeather API Automation Framework
 
@@ -12,114 +9,14 @@ A robust Quality Engineering framework designed for testing UCaaS/CCaaS-style AP
 CountryWeather/
 ├── .claude/                  # AI Governance & Coding Standards
 ├── .github/workflows/        # CI/CD Pipeline Definitions
-├── config/                   # Environments.yaml & static config
+├── config/                   # environments.yaml & static config
 ├── test_data/                # Single Source of Truth
 │   └── master_entities.json  # Consolidated country/city/coord data
 ├── tests/                    # Data-driven functional tests
 ├── utils/                    # Shared HTTP API Client
-├── validators/               # Pydantic Schema Enforcement
+├── validators/               # Dataclass Schema Enforcement
 ├── allure-results/           # Raw Test Data
 └── requirements.txt          # Project Dependencies
-Here is the complete, professional-grade documentation for your project, reflecting all the latest architectural improvements, data consolidation, and API migrations.
-
----
-
-### 1. CLAUDE_LOG.md
-
-```markdown
-# CLAUDE_LOG.md
-
-## 1. Parallel Agent Workstreams
-To optimize framework scaffolding, two independent workstreams were executed simultaneously via parallel agent instances to decouple the implementation of the two target APIs.
-
-*   **Workstream A**: REST Countries API implementation.
-*   **Workstream B**: Open-Meteo Weather API implementation.
-*   **Net Engineering Savings**: ~33 minutes of boilerplate development time.
-
----
-
-## 2. Architectural Decision Validation: Configuration Injection
-**Context**: Injecting environment-specific configuration without violating test isolation.
-
-**The Decision**: Rejected direct YAML parsing in the `ApiClient`. Implemented a dependency injection pattern where `conftest.py` orchestrates configuration injection.
-*   **Rationale**: Decouples the API client from the file system, enabling unit testing of the client layer in isolation.
-*   **Result**: The client is now data-agnostic and enforces strict contract validation.
-
----
-
-## 3. Infrastructure & Environment Management
-**Context**: Transitioned from internal VM runners to `ubuntu-latest` (GitHub Cloud).
-*   **Performance**: Standardized on `MAX_RESPONSE_TIME` thresholds. Refused to artificially inflate timeouts, choosing instead to enforce accurate performance SLAs.
-*   **Compatibility**: Enforced `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` to eliminate deprecation warnings.
-*   **Artifact Robustness**: Refactored artifact collection (`if: always()`) to ensure JUnit/Allure reports are persisted even during test failures.
-
----
-
-## 4. API Contract Migration: REST Countries v3 to v5
-**The Problem**: Upstream provider deprecated v3, introducing a mandatory API key requirement.
-
-**The Solution**: 
-1. **Authentication Injection**: Updated `ApiClient` to pass `RESTCOUNTRIES_API_KEY` via headers.
-2. **Secret Governance**: Implemented environment-variable injection using GitHub Actions Secrets. The key is never logged or hardcoded.
-3. **Validation**: Updated Pydantic validators to accommodate the v5 schema.
-
----
-
-## 5. Refactoring: Data Normalization & Data-Driven Testing
-**The Problem**: Redundant JSON structures (`cities.json`, `coordinates.json`, `countries.json`) created maintenance overhead and synchronization drift. Hardcoded values in tests bypassed the framework's data-driven capabilities.
-
-**The Solution**: Consolidated all entity data into a single `test_data/master_entities.json`. Migrated the test suite to use `pytest.mark.parametrize` to consume this "Single Source of Truth."
-
-**Impact**: 
-*   Reduced data surface area by 60%.
-*   Adding new test entities now requires zero code changes; coverage expands automatically.
-*   Enforced data consistency between Countries and Weather API suites.
-
----
-
-## 6. LLM Error Analysis
-**Claude's Suggestion**: Singleton pattern for `ApiClient`.
-**Resolution**: Overruled. Global state creates cross-thread pollution in `pytest-xdist`. Implemented a dynamic fixture pattern in `conftest.py` using `pytest_runtest_setup(item)` to ensure thread safety.
-
----
-
-## 7. How Rules Changed Claude's Output
-| Category | Default Output | Governed Output (With Rules) |
-| :--- | :--- | :--- |
-| **Documentation** | No docstrings. | Google-style docstrings. |
-| **Style** | Standard formatting. | Strict type hinting & Pylint compliance. |
-| **Complexity** | Inline logic. | Separation of Schema and Request logic. |
-
----
-
-## 8. Extensibility Audit
-**Action**: Implemented a shared `test_data` utility layer, ensuring cross-reference tests remain DRY (Don't Repeat Yourself) and maintainable.
-
-```
-
----
-
-### 2. README.md
-
-```markdown
-# CountryWeather API Automation Framework
-
-A robust Quality Engineering framework designed for testing UCaaS/CCaaS-style API architectures. Features automated schema enforcement, data-driven test generation, and detailed Allure reporting.
-
-## 1. Project Structure
-```text
-CountryWeather/
-├── .claude/                  # AI Governance & Coding Standards
-├── .github/workflows/        # CI/CD Pipeline Definitions
-├── config/                   # Environments.yaml & static config
-├── test_data/                # Single Source of Truth
-│   └── master_entities.json  # Consolidated country/city/coord data
-├── tests/                    # Data-driven functional tests
-├── utils/                    # Shared HTTP API Client
-├── validators/               # Pydantic Schema Enforcement
-├── allure-results/           # Raw Test Data
-└── requirements.txt          # Project Dependencies
-
 ```
 
 ## 2. Setup & Installation
@@ -132,15 +29,19 @@ CountryWeather/
 ### Installation
 
 1. Create a virtual environment: `python3 -m venv venv`
-2. Activate: `source venv/bin/activate`
+2. Activate: `source venv/bin/activate` (Windows: `venv\Scripts\activate`)
 3. Install dependencies: `pip install -r requirements.txt`
 
 ### Secrets Configuration
 
-The REST Countries API (v5) requires an API Key.
+The REST Countries API (v5) requires an API key, which the client reads from the
+`RESTCOUNTRIES_API_KEY` environment variable. The key is never hardcoded or committed.
 
-* **Local**: Create a `.env` file with `RESTCOUNTRIES_API_KEY=your_key`.
-* **GitHub Actions**: Add `RESTCOUNTRIES_API_KEY` to **Settings > Secrets and variables > Actions**.
+* **Local (bash)**: `export RESTCOUNTRIES_API_KEY=your_key`
+* **Local (PowerShell)**: `$env:RESTCOUNTRIES_API_KEY = "your_key"`
+* **GitHub Actions**: Add `RESTCOUNTRIES_API_KEY` under **Settings > Secrets and variables > Actions**.
+
+> The Open-Meteo weather API needs no key, so `pytest --env=weather` runs without any secret configured.
 
 ### Allure Reporting
 
@@ -148,28 +49,53 @@ The REST Countries API (v5) requires an API Key.
 * **Windows**: `scoop install allure`
 * **View Report**: `allure serve allure-results`
 
-## 3. Data-Driven Architecture
+## 3. Running the Suite
 
-This project utilizes a **Single Source of Truth** pattern.
+```bash
+pytest tests/                 # full suite (countries + weather)
+pytest tests/ --env=countries # REST Countries only (requires the API key)
+pytest tests/ --env=weather   # Open-Meteo only (no key, no quota usage)
+```
+
+## 4. Data-Driven Architecture
+
+This project uses a **Single Source of Truth** pattern.
 
 * All geographic and weather entity data is consolidated in `test_data/master_entities.json`.
-* Tests utilize `pytest.mark.parametrize` to consume this data.
-* **Benefit**: Adding a new country to the JSON automatically expands coverage for both the Countries and Weather API suites without requiring code changes.
+* Tests are parametrized centrally by a `pytest_generate_tests` hook in `conftest.py`: any test
+  declaring an `entity` argument is automatically run against every record in the dataset.
+* **Benefit**: Adding a new country to the JSON expands coverage for both the Countries and Weather
+  API suites automatically — no code changes required.
 
-## 4. CI/CD Pipeline
+## 5. API Client & Network Resilience
+
+All HTTP traffic flows through the shared `utils/api_client.py` wrapper, which centralizes
+cross-cutting concerns and keeps test files focused on functional assertions.
+
+* **Authentication**: Bearer-token injection for the environment that declares an `auth_env_var`.
+* **Envelope handling**: `get_objects()` unwraps the v5 `data.objects` envelope and paginates list
+  endpoints (page size capped at 100 by the API).
+* **Timeout & retries**: A hard per-attempt `request_timeout` prevents indefinite hangs; transient
+  `ConnectionError`/`Timeout` failures are retried with exponential backoff (`max_retries`,
+  `retry_backoff`). All thresholds live in `config/environments.yaml` — zero inline defaults.
+* **Performance gate**: Each call asserts against `max_response_time`, timing only the successful
+  attempt so the SLA reflects real server latency rather than retry/backoff overhead.
+
+## 6. CI/CD Pipeline
 
 Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
 
-* **Execution**: Enforces strict performance thresholds (2.0s / 3.0s) to monitor API latency regressions.
-* **Reliability**: Includes artifact persistence on failure, ensuring test results (JUnit/Allure) are captured for debug review even when assertions fail.
-* **Runtime**: Standardized on Node 24 runtime to future-proof the pipeline.
+* **Execution**: Enforces strict per-environment performance thresholds (countries 5.0s / weather
+  3.0s) to monitor API latency regressions.
+* **Reliability**: A hard request timeout plus a job-level `timeout-minutes: 15` guard ensure a
+  stalled upstream can never hang the pipeline; transient blips self-recover via retries.
+* **Robustness**: Artifact persistence on failure (`if: always()`) captures JUnit/Allure reports for
+  debug review even when assertions fail.
 
-## 5. Engineering Principles
+## 7. Engineering Principles
 
-* **Isolation**: No singleton patterns; thread-safe fixtures for parallel execution (`pytest-xdist` ready).
-* **Governance**: All code generation is governed by local AI rules files to ensure Pylint/type-hinting compliance.
-* **Integrity**: Latency thresholds are enforced as code; infrastructure flakiness is treated as a risk to be managed, not a test to be ignored.
-
-```
-
-```
+* **Isolation**: No singleton patterns; thread-safe fixtures for parallel execution.
+* **Governance**: Code generation is governed by local AI rules files to ensure Pylint/type-hinting
+  compliance and Google-style docstrings.
+* **Integrity**: Latency thresholds are enforced as code; infrastructure flakiness is treated as a
+  risk to be managed (bounded timeout + retry), not a test to be silenced.
