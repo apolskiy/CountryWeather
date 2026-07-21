@@ -85,7 +85,12 @@ cross-cutting concerns and keeps test files focused on functional assertions.
   As API provider limited number of requests per IP, it made sense to avoid running tests in parallel,
   using pytest-xdist, in order to avoid a cascade of failures, which would have nothing to do with application
   under test.
-  
+* **Proactive pacing**: For the same rate-limit reasons, a config-driven `min_request_interval` enforces a
+  minimum gap between consecutive requests, staying under the provider's short-window burst limit *before*
+  a `429` is ever returned — cheaper than reacting with retries against a capped monthly quota. The pacing
+  clock is shared session-wide across the per-test client instances, which is only sound because the suite
+  runs serially (see the pytest-xdist decision above); the `429`/`Retry-After` backoff remains as a fallback.
+
 * **Performance gate**: Each call asserts against `max_response_time`, timing only the successful
   attempt so the SLA reflects real server latency rather than retry/backoff overhead.
 
@@ -102,7 +107,9 @@ Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
 
 ## 7. Engineering Principles
 
-* **Isolation**: No singleton patterns; thread-safe fixtures for parallel execution.
+* **Isolation**: Function-scoped fixtures give each test its own client instance. The suite runs
+  serially by design (see §5) rather than under pytest-xdist, so the one piece of shared session-wide
+  state — the request-pacing clock — stays correct without cross-process coordination.
 * **Governance**: Code generation is governed by local AI rules files to ensure Pylint/type-hinting
   compliance and Google-style docstrings.
 * **Integrity**: Latency thresholds are enforced as code; infrastructure flakiness is treated as a
