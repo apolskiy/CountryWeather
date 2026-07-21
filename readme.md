@@ -79,6 +79,13 @@ cross-cutting concerns and keeps test files focused on functional assertions.
   `ConnectionError`/`Timeout` failures and retryable statuses (`429` rate-limiting, `502/503/504`)
   are retried with exponential backoff, honouring the server's `Retry-After` header. All thresholds
   live in `config/environments.yaml` — zero inline defaults.
+  Elected to use request library directly intead of urllib3 Retry or tenacity due external API limits
+  on concurrency and frequency of requests. There was also a hard cap on maximum APU requests per month,
+  so this was beneficial in curb unnecessary retries, which carry a real cost with cap limits.
+  As API provider limited number of requests per IP, it made sense to avoid running tests in parallel,
+  using pytest-xdist, in order to avoid a cascade of failures, which would have nothing to do with application
+  under test.
+  
 * **Performance gate**: Each call asserts against `max_response_time`, timing only the successful
   attempt so the SLA reflects real server latency rather than retry/backoff overhead.
 
