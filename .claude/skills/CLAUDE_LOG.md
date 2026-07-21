@@ -89,3 +89,12 @@ To optimize framework scaffolding, two independent workstreams were executed sim
 **The Solution**: Folded the only unique case (the non-existent-name negative test) into `test_countries.py` and deleted `test_country_api.py`. Combined with the `Retry-After`-aware 429 backoff, this keeps each run lean and under the burst limit.
 
 **Impact**: Removed the duplicate paginated `/all` sweep and cross-reference calls; cut per-run country requests by ~20% and eliminated the rate-limit failures.
+
+---
+
+## 11. Proactive Request Pacing
+**The Problem**: A CI run still failed with a `429` on `/region/Asia` at only ~29 requests into the 500/mo cap — a *burst* limit, not the monthly quota. The reactive `Retry-After` backoff (§9.3) fired but exhausted its ~3.5s of retries while the API's short-window limit was still open, so the final attempt hard-failed. Root cause: `api_client_fixture` is function-scoped, so nothing paced requests *across* the 33 back-to-back tests (all issued in ~23s).
+
+**The Solution**: Added a config-driven `min_request_interval` enforced by a new `ApiClient._throttle()`. Because the client is per-test, the last-request timestamp lives on the **class**, so pacing spans every instance and guarantees a minimum gap between the starts of consecutive requests session-wide. Countries is set to `1.0s`; Open-Meteo stays at `0.0` (no burst limit at this volume). The §9 429 retry remains as a fallback for gaps the throttle does not cover.
+
+**Principle**: Prevent the rate limit proactively (pace at the source) rather than only reacting to it after the server has already rejected the request.

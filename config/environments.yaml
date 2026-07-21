@@ -20,6 +20,11 @@ countries:
   # HTTP statuses retried with backoff. 429 covers the API's burst rate limit;
   # 502/503/504 cover transient upstream/gateway hiccups.
   retry_statuses: [429, 502, 503, 504]
+  # Proactive client-side pacing (seconds). ApiClient enforces at least this
+  # gap between the start of consecutive requests across the whole session, so
+  # the per-test suite does not burst past the v5 API's short-window rate limit
+  # (the reactive 429 retry above is a fallback for gaps this does not cover).
+  min_request_interval: 1.0
 
 weather:
   base_url: "https://api.open-meteo.com/v1"
@@ -32,3 +37,6 @@ weather:
   max_retries: 3
   retry_backoff: 0.5
   retry_statuses: [429, 502, 503, 504]
+  # Open-Meteo imposes no burst limit for this suite's volume, so no pacing is
+  # needed; 0.0 disables the client-side throttle.
+  min_request_interval: 0.0

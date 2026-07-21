@@ -33,6 +33,11 @@ class ApiClient:
             must return, sourced from the active environment configuration.
     """
 
+    # Session-wide timestamp (``time.monotonic``) of the most recently issued
+    # request, shared across every per-test instance so the client-side
+    # throttle paces requests globally rather than only within one test.
+    _last_request_monotonic: float = 0.0
+
     def __init__(self, env_config: dict) -> None:
         """Initialise the client from a parsed environment configuration block.
 
@@ -42,8 +47,9 @@ class ApiClient:
                 ``base_url`` (str), ``max_response_time`` (float),
                 ``min_results_count`` (int), ``auth_env_var`` (str or None),
                 ``page_limit`` (int or None), ``request_timeout`` (float),
-                ``max_retries`` (int), ``retry_backoff`` (float), and
-                ``retry_statuses`` (list of int). A missing key raises
+                ``max_retries`` (int), ``retry_backoff`` (float),
+                ``retry_statuses`` (list of int), and
+                ``min_request_interval`` (float). A missing key raises
                 :exc:`KeyError` immediately. When ``auth_env_var`` is a
                 non-empty string, the named environment variable must be set.
 
@@ -61,6 +67,7 @@ class ApiClient:
         self._max_retries: int = env_config["max_retries"]
         self._retry_backoff: float = env_config["retry_backoff"]
         self._retry_statuses: frozenset[int] = frozenset(env_config["retry_statuses"])
+        self._min_request_interval: float = env_config["min_request_interval"]
         self._session = requests.Session()
 
         if self._auth_env_var:
@@ -85,7 +92,10 @@ class ApiClient:
     def request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
         """Execute an HTTP request with timeout, retries, and response-time gating.
 
-        Constructs the full URL by appending *path* to the configured
+        Before dispatching, the call is paced against the session-wide
+        ``min_request_interval`` so consecutive requests (even across separate
+        per-test client instances) never burst past the API's short-window rate
+        limit. Constructs the full URL by appending *path* to the configured
         ``base_url`` and issues the request with a hard ``request_timeout``
         (so a stalled connection fails fast rather than hanging indefinitely).
         Transient transport failures (:class:`requests.ConnectionError` and
@@ -123,6 +133,7 @@ class ApiClient:
         """
         url = f"{self._base_url}{path}"
         kwargs.setdefault("timeout", self._request_timeout)
+        self._throttle()
 
         for attempt in range(self._max_retries + 1):
             start = time.perf_counter()
@@ -146,6 +157,27 @@ class ApiClient:
             return response
 
         raise RuntimeError("unreachable: retry loop exited without returning or raising")
+
+    def _throttle(self) -> None:
+        """Pace the next request against the session-wide minimum interval.
+
+        Enforces at least ``min_request_interval`` seconds between the starts of
+        consecutive requests by sleeping the remaining gap when the previous
+        request was too recent. The reference timestamp is stored on the class,
+        so pacing spans every per-test :class:`ApiClient` instance rather than a
+        single test. A non-positive interval disables throttling entirely.
+
+        Returns:
+            None
+        """
+        if self._min_request_interval <= 0:
+            return
+        wait = self._min_request_interval - (
+            time.monotonic() - ApiClient._last_request_monotonic
+        )
+        if wait > 0:
+            time.sleep(wait)
+        ApiClient._last_request_monotonic = time.monotonic()
 
     def _retry_delay(self, response: requests.Response, attempt: int) -> float:
         """Compute the backoff delay before retrying a retryable response.
