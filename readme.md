@@ -57,6 +57,28 @@ pytest tests/ --env=countries # REST Countries only (requires the API key)
 pytest tests/ --env=weather   # Open-Meteo only (no key, no quota usage)
 ```
 
+### Make Targets
+
+A `Makefile` wraps the canonical pytest invocation so local runs and CI execute
+the identical command. This is the single source of truth for the pytest flags
+and the artifact directories.
+
+```bash
+make test                              # clean artifacts, then run the full suite
+make clean                             # remove test_results, allure-results, allure-report, .pytest_cache
+make test PYTEST_ARGS="--env=weather"  # forward extra flags to pytest
+```
+
+`make test` runs `clean` first, so each run starts from a fresh set of artifact
+directories. The `PYTEST_ARGS` variable forwards any additional pytest flags
+(for example `-v` or `--env=<suite>`) without editing the recipe.
+
+> The file was originally generated as `MakeFIle` and has been corrected to
+> `Makefile`. The exact name matters: GNU make only auto-discovers `GNUmakefile`,
+> `makefile`, or `Makefile`. Any other casing resolves locally on a
+> case-insensitive filesystem but fails on the case-sensitive `ubuntu-latest`
+> runner with "No targets specified and no makefile found".
+
 ## 4. Data-Driven Architecture
 
 This project uses a **Single Source of Truth** pattern.
@@ -98,7 +120,18 @@ cross-cutting concerns and keeps test files focused on functional assertions.
 
 Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
 
-* **Execution**: Enforces strict per-environment performance thresholds (countries 5.0s / weather
+* **Execution**: The workflow invokes `make test`, so CI runs the exact same
+  command as a local run. The workflow forwards `-v` (and `--env=<suite>` when a
+  manual `workflow_dispatch` run selects a single suite) via `PYTEST_ARGS`.
+* **Serialized runs**: A top-level `concurrency` group with a constant,
+  branch-agnostic name serializes every run of the workflow account-wide, with
+  `cancel-in-progress: false` so an in-flight run finishes before the next
+  starts. Because the REST Countries quota and burst limit are shared across all
+  branches, this prevents two runs from racing the same API and re-triggering the
+  rate limiting that the request pacing (see §5) is designed to avoid. A
+  per-branch group would not be sufficient, since the limit is not scoped to a
+  branch.
+* **Thresholds**: Enforces strict per-environment performance thresholds (countries 5.0s / weather
   3.0s) to monitor API latency regressions.
 * **Reliability**: A hard request timeout plus a job-level `timeout-minutes: 15` guard ensure a
   stalled upstream can never hang the pipeline; transient blips self-recover via retries.
