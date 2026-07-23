@@ -65,7 +65,7 @@ This project uses a **Single Source of Truth** pattern.
 * Tests are parametrized centrally by a `pytest_generate_tests` hook in `conftest.py`: any test
   declaring an `entity` argument is automatically run against every record in the dataset.
 * **Benefit**: Adding a new country to the JSON expands coverage for both the Countries and Weather
-  API suites automatically — no code changes required.
+  API suites automatically - no code changes required.
 
 ## 5. API Client & Network Resilience
 
@@ -78,7 +78,7 @@ cross-cutting concerns and keeps test files focused on functional assertions.
 * **Timeout & retries**: A hard per-attempt `request_timeout` prevents indefinite hangs; transient
   `ConnectionError`/`Timeout` failures and retryable statuses (`429` rate-limiting, `502/503/504`)
   are retried with exponential backoff, honouring the server's `Retry-After` header. All thresholds
-  live in `config/environments.yaml` — zero inline defaults.
+  live in `config/environments.yaml` - zero inline defaults.
   Elected to use request library directly intead of urllib3 Retry or tenacity due external API limits
   on concurrency and frequency of requests. There was also a hard cap on maximum APU requests per month,
   so this was beneficial in curb unnecessary retries, which carry a real cost with cap limits.
@@ -87,7 +87,7 @@ cross-cutting concerns and keeps test files focused on functional assertions.
   under test.
 * **Proactive pacing**: For the same rate-limit reasons, a config-driven `min_request_interval` enforces a
   minimum gap between consecutive requests, staying under the provider's short-window burst limit *before*
-  a `429` is ever returned — cheaper than reacting with retries against a capped monthly quota. The pacing
+  a `429` is ever returned - cheaper than reacting with retries against a capped monthly quota. The pacing
   clock is shared session-wide across the per-test client instances, which is only sound because the suite
   runs serially (see the pytest-xdist decision above); the `429`/`Retry-After` backoff remains as a fallback.
 
@@ -109,7 +109,7 @@ Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
 
 * **Isolation**: Function-scoped fixtures give each test its own client instance. The suite runs
   serially by design (see §5) rather than under pytest-xdist, so the one piece of shared session-wide
-  state — the request-pacing clock — stays correct without cross-process coordination.
+  state - the request-pacing clock - stays correct without cross-process coordination.
 * **Governance**: Code generation is governed by local AI rules files to ensure Pylint/type-hinting
   compliance and Google-style docstrings.
 * **Integrity**: Latency thresholds are enforced as code; infrastructure flakiness is treated as a
