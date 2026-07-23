@@ -41,19 +41,19 @@ jobs:
       - name: Run Tests
         env:
           RESTCOUNTRIES_API_KEY: ${{ secrets.RESTCOUNTRIES_API_KEY }}
+          ENV_INPUT: ${{ github.event.inputs.env }}
         run: |
-          mkdir -p test_results allure-results
-          
-          # Base command with your required report plugins
-          CMD="pytest tests/ --alluredir=allure-results --junitxml=test_results/results.xml --html=test_results/report.html --self-contained-html -v"
-          
-          # Add environment flag if specified
-          if [ "${{ github.event.inputs.env }}" != "none" ]; then
-            CMD="$CMD --env=${{ github.event.inputs.env }}"
+          PYTEST_ARGS="-v"
+
+          # The env input exists only for workflow_dispatch (empty on push and
+          # pull_request); 'none' is the explicit "run every suite" choice.
+          if [ -n "$ENV_INPUT" ] && [ "$ENV_INPUT" != "none" ]; then
+            PYTEST_ARGS="$PYTEST_ARGS --env=$ENV_INPUT"
           fi
-          
-          # Execute
-          $CMD
+
+          # The Makefile owns the pytest invocation and artifact directories,
+          # so local runs and CI execute the identical command.
+          make test PYTEST_ARGS="$PYTEST_ARGS"
 
       - name: Generate Allure Report
         if: always()
