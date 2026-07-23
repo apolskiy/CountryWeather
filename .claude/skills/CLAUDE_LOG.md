@@ -70,13 +70,13 @@ To optimize framework scaffolding, two independent workstreams were executed sim
 ---
 
 ## 9. Network Resilience Hardening
-**The Problem**: A CI run hung for ~18 minutes on a single test. Root cause: the `ApiClient` issued `requests` calls with no timeout (`read timeout=None`), so a transient TLS-handshake stall to Open-Meteo blocked until the kernel killed the socket (`Errno 110`) — turning a momentary network blip into a red, multi-minute build.
+**The Problem**: A CI run hung for ~18 minutes on a single test. Root cause: the `ApiClient` issued `requests` calls with no timeout (`read timeout=None`), so a transient TLS-handshake stall to Open-Meteo blocked until the kernel killed the socket (`Errno 110`) - turning a momentary network blip into a red, multi-minute build.
 
 **The Solution**:
 1. **Hard Timeout**: Added a config-driven `request_timeout` (per-attempt network ceiling) so a stalled connection fails in seconds, not minutes.
 2. **Transient Retries**: Added `max_retries` + exponential `retry_backoff` for `ConnectionError`/`Timeout`, so brief blips self-recover instead of failing the build.
-3. **Rate-Limit Backoff**: Added `retry_statuses` (e.g. `429`, `502/503/504`) so the burst rate limit is retried — honouring the server's `Retry-After` header — rather than hard-failing the run. (Confirmed via the dashboard: failures were burst 429s, not monthly-quota exhaustion — only ~115 of 500 requests used.)
-4. **Honest SLAs**: The response-time gate now times only the *successful* attempt — backoff and failed-attempt latency are excluded, so `max_response_time` still reflects true server performance.
+3. **Rate-Limit Backoff**: Added `retry_statuses` (e.g. `429`, `502/503/504`) so the burst rate limit is retried - honouring the server's `Retry-After` header - rather than hard-failing the run. (Confirmed via the dashboard: failures were burst 429s, not monthly-quota exhaustion - only ~115 of 500 requests used.)
+4. **Honest SLAs**: The response-time gate now times only the *successful* attempt - backoff and failed-attempt latency are excluded, so `max_response_time` still reflects true server performance.
 5. **Safety Net**: Added `timeout-minutes: 15` to the CI job so no future hang can run unbounded.
 
 **Principle**: Infrastructure flakiness is managed at the network layer (bounded timeout + retry), never by silencing assertions or inflating performance thresholds.
@@ -84,7 +84,7 @@ To optimize framework scaffolding, two independent workstreams were executed sim
 ---
 
 ## 10. Suite Consolidation: Eliminating Redundant Coverage
-**Context**: After the data-driven refactor, `test_country_api.py` had become ~80% redundant with the parametrized `test_countries.py` (duplicate region count, Germany schema, all-countries sweep, and cross-reference), nearly doubling the REST Countries request volume per run — enough to trip the API's burst rate limit (429) in CI even with monthly quota to spare.
+**Context**: After the data-driven refactor, `test_country_api.py` had become ~80% redundant with the parametrized `test_countries.py` (duplicate region count, Germany schema, all-countries sweep, and cross-reference), nearly doubling the REST Countries request volume per run - enough to trip the API's burst rate limit (429) in CI even with monthly quota to spare.
 
 **The Solution**: Folded the only unique case (the non-existent-name negative test) into `test_countries.py` and deleted `test_country_api.py`. Combined with the `Retry-After`-aware 429 backoff, this keeps each run lean and under the burst limit.
 
@@ -93,7 +93,7 @@ To optimize framework scaffolding, two independent workstreams were executed sim
 ---
 
 ## 11. Proactive Request Pacing
-**The Problem**: A CI run still failed with a `429` on `/region/Asia` at only ~29 requests into the 500/mo cap — a *burst* limit, not the monthly quota. The reactive `Retry-After` backoff (§9.3) fired but exhausted its ~3.5s of retries while the API's short-window limit was still open, so the final attempt hard-failed. Root cause: `api_client_fixture` is function-scoped, so nothing paced requests *across* the 33 back-to-back tests (all issued in ~23s).
+**The Problem**: A CI run still failed with a `429` on `/region/Asia` at only ~29 requests into the 500/mo cap - a *burst* limit, not the monthly quota. The reactive `Retry-After` backoff (§9.3) fired but exhausted its ~3.5s of retries while the API's short-window limit was still open, so the final attempt hard-failed. Root cause: `api_client_fixture` is function-scoped, so nothing paced requests *across* the 33 back-to-back tests (all issued in ~23s).
 
 **The Solution**: Added a config-driven `min_request_interval` enforced by a new `ApiClient._throttle()`. Because the client is per-test, the last-request timestamp lives on the **class**, so pacing spans every instance and guarantees a minimum gap between the starts of consecutive requests session-wide. Countries is set to `1.0s`; Open-Meteo stays at `0.0` (no burst limit at this volume). The §9 429 retry remains as a fallback for gaps the throttle does not cover.
 
