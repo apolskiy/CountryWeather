@@ -19,7 +19,7 @@ on:
 
 # Serialize every run of this workflow account-wide. The REST Countries quota
 # and burst limit are shared across all branches, so a constant (branch-agnostic)
-# group name is required — a per-branch group would let two branches race the
+# group name is required - a per-branch group would let two branches race the
 # same API. cancel-in-progress: false lets the in-flight run finish before the
 # next one starts, rather than killing it.
 concurrency:

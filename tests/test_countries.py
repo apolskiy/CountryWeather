@@ -2,12 +2,12 @@
 
 Covers the following endpoint contracts:
 
-* ``GET /names.common/{name}`` — country lookup by common name.
-* ``GET /codes.alpha_2/{code}`` — country lookup by ISO 3166-1 alpha-2 code.
-* ``GET /region/{region}`` — all countries in a region.
-* ``GET /`` (root) — all-countries population field integrity sweep
+* ``GET /names.common/{name}`` - country lookup by common name.
+* ``GET /codes.alpha_2/{code}`` - country lookup by ISO 3166-1 alpha-2 code.
+* ``GET /region/{region}`` - all countries in a region.
+* ``GET /`` (root) - all-countries population field integrity sweep
   (paginated; ``response_fields`` filtered to ``names.common,population``).
-* ``GET /names.common/{name}`` + ``GET /region/{region}`` — cross-reference
+* ``GET /names.common/{name}`` + ``GET /region/{region}`` - cross-reference
   that each entity appears in its own region's result set.
 
 All entity-driven tests declare an ``entity`` parameter and are parametrized by
@@ -46,7 +46,7 @@ class TestCountries:
     a :mod:`validators.country_schema` schema class.
     """
 
-    @allure.story("Country Lookup by Name — Schema and Count")
+    @allure.story("Country Lookup by Name - Schema and Count")
     def test_country_by_name(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify schema correctness and result count for name-based lookups.
 
@@ -81,7 +81,7 @@ class TestCountries:
             assert len(validated.capital) > 0
             assert validated.population > 0
 
-    @allure.story("Country Lookup by Alpha Code — Schema Integrity")
+    @allure.story("Country Lookup by Alpha Code - Schema Integrity")
     def test_country_by_alpha_code(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify schema integrity for alpha-code-based lookups.
 
@@ -117,7 +117,7 @@ class TestCountries:
             assert validated.name.common != ""
             assert validated.name.official != ""
 
-    @allure.story("Country — Full Schema Validation")
+    @allure.story("Country - Full Schema Validation")
     def test_country_full_schema(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify full schema correctness for an entity's name-lookup response.
 
@@ -148,7 +148,7 @@ class TestCountries:
             with allure.step(f"Validate full CountrySchema for {entity['name']}"):
                 validated = CountrySchema.from_dict(results[0])
                 logger.info(
-                    "Schema validated — cca2=%s, region=%s, population=%d",
+                    "Schema validated - cca2=%s, region=%s, population=%d",
                     validated.cca2,
                     validated.region,
                     validated.population,
@@ -165,7 +165,7 @@ class TestCountries:
             logger.error("test_country_full_schema failed for %s: %s", entity["name"], exc)
             raise
 
-    @allure.story("Europe Region — Result Count Threshold")
+    @allure.story("Europe Region - Result Count Threshold")
     def test_europe_region_count(self, api_client_fixture: ApiClient) -> None:
         """Verify that ``/region/europe`` returns more than 40 countries.
 
@@ -201,7 +201,7 @@ class TestCountries:
             logger.error("test_europe_region_count failed: %s", exc)
             raise
 
-    @allure.story("All Countries — Population Field Integrity")
+    @allure.story("All Countries - Population Field Integrity")
     def test_all_population_check(self, api_client_fixture: ApiClient) -> None:
         """Verify that every country reports a non-negative population.
 
@@ -251,7 +251,7 @@ class TestCountries:
             logger.error("test_all_population_check failed: %s", exc)
             raise
 
-    @allure.story("Cross-Reference — Country Present in Its Own Region Results")
+    @allure.story("Cross-Reference - Country Present in Its Own Region Results")
     def test_country_present_in_region(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify that an entity's common name appears in its own region's result set.
 
@@ -277,7 +277,7 @@ class TestCountries:
                 validation.
         """
         try:
-            with allure.step(f"GET /names.common/{entity['name']} — resolve canonical name and region"):
+            with allure.step(f"GET /names.common/{entity['name']} - resolve canonical name and region"):
                 name_results = api_client_fixture.get_objects(f"/names.common/{entity['name']}")
                 validated = CountrySchema.from_dict(name_results[0])
                 common_name = validated.name.common
@@ -287,7 +287,7 @@ class TestCountries:
                 )
                 logger.info("Resolved canonical name='%s', region='%s'", common_name, region)
 
-            with allure.step(f"GET /region/{region} — collect common names (paginated)"):
+            with allure.step(f"GET /region/{region} - collect common names (paginated)"):
                 region_results = api_client_fixture.get_objects(f"/region/{region}", paginate=True)
                 logger.info("Received %d countries from /region/%s", len(region_results), region)
                 region_names = {item["names"]["common"] for item in region_results}
@@ -300,7 +300,7 @@ class TestCountries:
             logger.error("test_country_present_in_region failed for %s: %s", entity["name"], exc)
             raise
 
-    @allure.story("Negative — Non-existent Country Name Returns an Empty Result Set")
+    @allure.story("Negative - Non-existent Country Name Returns an Empty Result Set")
     def test_nonexistent_country_returns_empty(self, api_client_fixture: ApiClient) -> None:
         """Verify that a lookup for a non-existent country name yields no results.
 

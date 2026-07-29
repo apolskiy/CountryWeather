@@ -6,7 +6,7 @@ raw JSON country objects returned by ``api.restcountries.com`` (v5). All
 parsing occurs through :meth:`from_dict` factory methods that perform explicit
 field-presence checks before construction.
 
-These validators operate on a single country object — i.e. one element of the
+These validators operate on a single country object - i.e. one element of the
 ``data.objects`` list returned by the v5 API (see
 :meth:`utils.api_client.ApiClient.get_objects`), not the enclosing envelope.
 

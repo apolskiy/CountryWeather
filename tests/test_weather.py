@@ -3,13 +3,13 @@
 Covers the following endpoint contracts:
 
 * ``GET /forecast?latitude=…&longitude=…&current_weather=true``
-  — current observation schema and physical-range validation.
+  - current observation schema and physical-range validation.
 * ``GET /forecast?latitude=…&longitude=…&current_weather=true&hourly=temperature_2m``
-  — combined current-weather and hourly forecast validation.
+  - combined current-weather and hourly forecast validation.
 
 Both tests declare an ``entity`` parameter and are parametrized by the
 ``pytest_generate_tests`` hook in :mod:`conftest` over every record in
-``test_data/master_entities.json`` — the same single source of truth consumed
+``test_data/master_entities.json`` - the same single source of truth consumed
 by the country suite. The ``city``, ``latitude``, and ``longitude`` fields of
 each record drive the forecast lookups. Every response is validated through a
 schema class from :mod:`validators.weather_schema`.
@@ -48,7 +48,7 @@ class TestWeather:
     both the ``current_weather`` and ``hourly`` response blocks.
     """
 
-    @allure.story("Current Weather by Coordinates — Schema and Data Integrity")
+    @allure.story("Current Weather by Coordinates - Schema and Data Integrity")
     def test_current_weather_by_coordinates(
         self, api_client_fixture: ApiClient, entity: dict
     ) -> None:
@@ -88,7 +88,7 @@ class TestWeather:
             with allure.step("Validate full WeatherSchema"):
                 validated = WeatherSchema.from_dict(response.json())
                 logger.info(
-                    "Schema validated — timezone=%s, temperature=%.1f°C",
+                    "Schema validated - timezone=%s, temperature=%.1f°C",
                     validated.timezone,
                     validated.current_weather.temperature,
                 )
@@ -112,7 +112,7 @@ class TestWeather:
             logger.error("test_current_weather_by_coordinates failed for %s: %s", entity["city"], exc)
             raise
 
-    @allure.story("Hourly Forecast by City — Schema, Temperature Range, and Entry Count")
+    @allure.story("Hourly Forecast by City - Schema, Temperature Range, and Entry Count")
     def test_forecast_by_city(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify schema correctness and forecast integrity for city-based hourly lookups.
 
@@ -153,7 +153,7 @@ class TestWeather:
             with allure.step("Validate full WeatherForecastSchema"):
                 validated = WeatherForecastSchema.from_dict(response.json())
                 logger.info(
-                    "Schema validated — city=%s, timezone=%s, hourly_entries=%d",
+                    "Schema validated - city=%s, timezone=%s, hourly_entries=%d",
                     entity["city"],
                     validated.timezone,
                     len(validated.hourly.temperature_2m),
