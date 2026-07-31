@@ -102,12 +102,12 @@ class TestWeather:
                 )
 
             with allure.step("Assert current weather values are within physically valid ranges"):
-                cw = validated.current_weather
-                assert -90.0 <= cw.temperature <= 60.0, f"Temperature out of range: {cw.temperature}"
-                assert cw.windspeed >= 0.0, f"Negative windspeed: {cw.windspeed}"
-                assert 0.0 <= cw.winddirection <= 360.0, f"Wind direction out of range: {cw.winddirection}"
-                assert cw.is_day in (0, 1), f"is_day must be 0 or 1, got {cw.is_day}"
-                assert cw.interval > 0, f"Non-positive interval: {cw.interval}"
+                current = validated.current_weather
+                assert -90.0 <= current.temperature <= 60.0, f"Temperature out of range: {current.temperature}"
+                assert current.windspeed >= 0.0, f"Negative windspeed: {current.windspeed}"
+                assert 0.0 <= current.winddirection <= 360.0, f"Wind direction out of range: {current.winddirection}"
+                assert current.is_day in (0, 1), f"is_day must be 0 or 1, got {current.is_day}"
+                assert current.interval > 0, f"Non-positive interval: {current.interval}"
         except AssertionError as exc:
             logger.error("test_current_weather_by_coordinates failed for %s: %s", entity["city"], exc)
             raise

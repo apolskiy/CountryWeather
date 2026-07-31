@@ -101,8 +101,8 @@ class WeatherHourlyData:
             if field not in data:
                 raise KeyError(f"Missing mandatory field in 'hourly': '{field}'")
         return cls(
-            time=[str(t) for t in data["time"]],
-            temperature_2m=[float(v) for v in data["temperature_2m"]],
+            time=[str(timestamp) for timestamp in data["time"]],
+            temperature_2m=[float(reading) for reading in data["temperature_2m"]],
         )
 
 

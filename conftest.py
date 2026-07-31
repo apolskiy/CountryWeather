@@ -110,8 +110,8 @@ def _load_master_entities() -> list[dict]:
         FileNotFoundError: If ``test_data/master_entities.json`` is absent.
         json.JSONDecodeError: If the file does not contain valid JSON.
     """
-    with open(_MASTER_ENTITIES_PATH, encoding="utf-8") as fh:
-        return json.load(fh)
+    with open(_MASTER_ENTITIES_PATH, encoding="utf-8") as entities_file:
+        return json.load(entities_file)
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
@@ -218,8 +218,8 @@ def _env_configs() -> dict:
         dict: The complete parsed YAML structure keyed by environment name
         (``"countries"`` and ``"weather"``).
     """
-    with open(_CONFIG_PATH) as fh:
-        return yaml.safe_load(fh)
+    with open(_CONFIG_PATH) as config_file:
+        return yaml.safe_load(config_file)
 
 
 @pytest.fixture
