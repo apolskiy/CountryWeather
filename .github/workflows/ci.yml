@@ -1,10 +1,31 @@
 name: CountryWeather CI Pipeline
 
+# Every run of this workflow spends the REST Countries monthly quota, which is
+# capped and shared across all branches. A commit that cannot change the result
+# must therefore not trigger one: documentation is the common case, and it used
+# to run the full suite against the live API for nothing.
+#
+# paths-ignore rather than paths, deliberately. An allowlist has to be extended
+# every time a directory is added, and the failure mode when someone forgets is
+# silent - new code that never runs in CI while the badge stays green. A
+# denylist fails the other way: the worst case is a run that was not needed,
+# which costs quota once and is visible, rather than coverage that was never
+# there.
 on:
   push:
     branches: [ "**" ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.idea/**'
   pull_request:
     branches: [ "**" ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.idea/**'
   workflow_dispatch:
     inputs:
       env:

@@ -23,6 +23,33 @@ in the evening in one timezone still agrees with the commit that carries it.
 
 ---
 
+## v1.1.0 - 2026-08-10
+
+### Changed
+
+- **CI no longer runs on commits that cannot change the result.** The workflow
+  triggered on every push and pull request to any branch, so a documentation-only
+  commit ran the full suite against the live REST Countries API and spent
+  capped monthly quota re-confirming a result that could not have moved. Proven
+  rather than assumed: publishing v1.0.0 - a README and a changelog, no source -
+  fired run `31351644391` and did exactly that.
+
+  This contradicted the project's own reasoning. The quota being the scarce
+  resource is why runs are serialized account-wide, why `cancel-in-progress` is
+  `false`, and why `pytest-xdist` was rejected; spending it on Markdown belongs
+  to none of that. Both sibling repositories already handled it - PublicAP
+  path-filters its emulator suite, and the portfolio site skips its dispatch for
+  non-`.html/.css/.js` commits.
+
+  The trigger now carries `paths-ignore` for `**.md`, `LICENSE`, `.gitignore`
+  and `.idea/**`. A denylist rather than an allowlist, deliberately: an
+  allowlist must be extended whenever a directory is added, and forgetting is
+  silent - new code that never runs in CI while the badge stays green. A
+  denylist fails the other way, where the worst case is one unnecessary run that
+  costs quota once and is visible. `workflow_dispatch` still forces a run.
+
+---
+
 ## v1.0.0 - 2026-08-10
 
 First release under version tracking. The framework predates this file;

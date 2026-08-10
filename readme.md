@@ -4,7 +4,7 @@ Aleksandr Polskiy
 
 A robust Quality Engineering framework designed for testing UCaaS/CCaaS-style API architectures. Features automated schema enforcement, data-driven test generation, and detailed Allure reporting.
 
-> **Documentation status:** describes **v1.0.0**, reviewed 2026-08-10.
+> **Documentation status:** describes **v1.1.0**, reviewed 2026-08-10.
 > Each section below carries the release and date its content last changed, so a
 > reader arriving at a later version can see at a glance which parts moved. This
 > file always describes the *current* release; release-to-release history lives
@@ -161,13 +161,25 @@ cross-cutting concerns and keeps test files focused on functional assertions.
 
 ## 6. CI/CD Pipeline
 
-<sub>v1.0.0 &middot; 2026-08-10</sub>
+<sub>v1.1.0 &middot; 2026-08-10</sub>
 
 Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
 
 * **Execution**: The workflow invokes `make test`, so CI runs the exact same
   command as a local run. The workflow forwards `-v` (and `--env=<suite>` when a
   manual `workflow_dispatch` run selects a single suite) via `PYTEST_ARGS`.
+* **Triggered only by changes that can alter the result**: the workflow
+  originally ran on *every* push and pull request to any branch, which meant a
+  commit touching nothing but Markdown still ran the full suite against the live
+  REST Countries API and spent monthly quota to re-confirm a result that could
+  not have moved. Since the scarce resource here is that quota rather than
+  runner minutes (see §5 and *Serialized runs* below), the trigger now carries a
+  `paths-ignore` list covering `**.md`, `LICENSE`, `.gitignore` and `.idea/**`.
+  This is a denylist rather than an allowlist on purpose: an allowlist has to be
+  extended whenever a directory is added, and forgetting is silent - new code
+  that never runs in CI while the badge stays green. A denylist fails the other
+  way, and an unnecessary run costs quota once and is visible. Use
+  `workflow_dispatch` to force a run regardless.
 * **Serialized runs**: A top-level `concurrency` group with a constant,
   branch-agnostic name serializes every run of the workflow account-wide, with
   `cancel-in-progress: false` so an in-flight run finishes before the next
