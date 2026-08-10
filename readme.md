@@ -4,22 +4,59 @@ Aleksandr Polskiy
 
 A robust Quality Engineering framework designed for testing UCaaS/CCaaS-style API architectures. Features automated schema enforcement, data-driven test generation, and detailed Allure reporting.
 
+> **Documentation status:** describes **v1.0.0**, reviewed 2026-08-10.
+> Each section below carries the release and date its content last changed, so a
+> reader arriving at a later version can see at a glance which parts moved. This
+> file always describes the *current* release; release-to-release history lives
+> in [CHANGELOG.md](CHANGELOG.md).
+
 ## 1. Project Structure
+
+<sub>v1.0.0 &middot; 2026-08-10</sub>
+
 ```text
 CountryWeather/
-├── .claude/                  # AI Governance & Coding Standards
-├── .github/workflows/        # CI/CD Pipeline Definitions
-├── config/                   # environments.yaml & static config
-├── test_data/                # Single Source of Truth
+├── .claude/                  # AI governance: coding rules and generator skills
+│   ├── rules/                # code-style, framework-rules, testing-standards
+│   └── skills/               # CLAUDE_LOG.md plus test/validator generators
+├── .github/workflows/ci.yml  # CI pipeline: serialized, Make-driven
+├── config/
+│   └── environments.yaml     # Per-environment URLs, thresholds, retry policy
+├── test_data/                # Single source of truth
 │   └── master_entities.json  # Consolidated country/city/coord data
 ├── tests/                    # Data-driven functional tests
-├── utils/                    # Shared HTTP API Client
-├── validators/               # Dataclass Schema Enforcement
-├── allure-results/           # Raw Test Data
-└── requirements.txt          # Project Dependencies
+│   ├── test_countries.py
+│   └── test_weather.py
+├── utils/
+│   └── api_client.py         # Shared HTTP client: auth, retries, pacing, SLA
+├── validators/               # Dataclass schema enforcement
+│   ├── country_schema.py
+│   └── weather_schema.py
+├── conftest.py               # pytest_generate_tests parametrization hook
+├── pytest.ini                # Pytest configuration
+├── .pylintrc                 # Static analysis configuration
+├── Makefile                  # The canonical invocation, shared by local and CI
+├── requirements.txt          # Project dependencies
+├── CHANGELOG.md              # Release-to-release history
+└── readme.md
 ```
 
+Generated at run time and gitignored: `allure-results/`, `allure-report/`, and
+`test_results/` (JUnit XML plus the self-contained HTML report). `make clean`
+removes all of them, and `make test` runs `clean` first, so a run never reports
+against a previous run's artifacts.
+
+> Two files, `test_results/report.html` and `test_results/results.xml`, were
+> committed before the ignore rule was added and are therefore still tracked -
+> `.gitignore` does not untrack what git already knows about. `make clean`
+> deletes them, so a local `make test` leaves two deletions in `git status` that
+> have nothing to do with the change being worked on. Untracking them with
+> `git rm --cached` resolves it; they are build output, and the ignore rule
+> already says they were never meant to be in the repository.
+
 ## 2. Setup & Installation
+
+<sub>v1.0.0 &middot; 2026-08-10</sub>
 
 ### Prerequisites
 
@@ -51,6 +88,8 @@ The REST Countries API (v5) requires an API key, which the client reads from the
 
 ## 3. Running the Suite
 
+<sub>v1.0.0 &middot; 2026-08-10</sub>
+
 ```bash
 pytest tests/                 # full suite (countries + weather)
 pytest tests/ --env=countries # REST Countries only (requires the API key)
@@ -81,6 +120,8 @@ directories. The `PYTEST_ARGS` variable forwards any additional pytest flags
 
 ## 4. Data-Driven Architecture
 
+<sub>v1.0.0 &middot; 2026-08-10</sub>
+
 This project uses a **Single Source of Truth** pattern.
 
 * All geographic and weather entity data is consolidated in `test_data/master_entities.json`.
@@ -90,6 +131,8 @@ This project uses a **Single Source of Truth** pattern.
   API suites automatically - no code changes required.
 
 ## 5. API Client & Network Resilience
+
+<sub>v1.0.0 &middot; 2026-08-10</sub>
 
 All HTTP traffic flows through the shared `utils/api_client.py` wrapper, which centralizes
 cross-cutting concerns and keeps test files focused on functional assertions.
@@ -118,6 +161,8 @@ cross-cutting concerns and keeps test files focused on functional assertions.
 
 ## 6. CI/CD Pipeline
 
+<sub>v1.0.0 &middot; 2026-08-10</sub>
+
 Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
 
 * **Execution**: The workflow invokes `make test`, so CI runs the exact same
@@ -139,6 +184,8 @@ Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
   debug review even when assertions fail.
 
 ## 7. Engineering Principles
+
+<sub>v1.0.0 &middot; 2026-08-10</sub>
 
 * **Isolation**: Function-scoped fixtures give each test its own client instance. The suite runs
   serially by design (see §5) rather than under pytest-xdist, so the one piece of shared session-wide
