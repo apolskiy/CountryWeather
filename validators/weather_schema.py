@@ -50,7 +50,10 @@ class CurrentWeather:
         Raises:
             KeyError: If any required field is absent from *data*.
         """
-        required = ("time", "interval", "temperature", "windspeed", "winddirection", "weathercode", "is_day")
+        required = (
+            "time", "interval", "temperature", "windspeed",
+            "winddirection", "weathercode", "is_day",
+        )
         for field in required:
             if field not in data:
                 raise KeyError(f"Missing mandatory field in 'current_weather': '{field}'")
@@ -153,7 +156,10 @@ class WeatherSchema:
                 nested required field is absent from the
                 ``current_weather`` sub-object.
         """
-        required = ("latitude", "longitude", "timezone", "timezone_abbreviation", "elevation", "current_weather")
+        required = (
+            "latitude", "longitude", "timezone",
+            "timezone_abbreviation", "elevation", "current_weather",
+        )
         for field in required:
             if field not in data:
                 raise KeyError(f"Missing mandatory schema field: '{field}'")

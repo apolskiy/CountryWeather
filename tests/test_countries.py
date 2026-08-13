@@ -71,7 +71,8 @@ class TestCountries:
 
         with allure.step("Assert result count meets configured minimum"):
             assert len(results) >= api_client_fixture.min_results_count, (
-                f"Expected at least {api_client_fixture.min_results_count} result(s), got {len(results)}"
+                f"Expected at least {api_client_fixture.min_results_count} "
+                f"result(s), got {len(results)}"
             )
 
         with allure.step("Validate full schema of first result"):
@@ -106,7 +107,8 @@ class TestCountries:
 
         with allure.step("Assert result count meets configured minimum"):
             assert len(results) >= api_client_fixture.min_results_count, (
-                f"Expected at least {api_client_fixture.min_results_count} result(s), got {len(results)}"
+                f"Expected at least {api_client_fixture.min_results_count} "
+                f"result(s), got {len(results)}"
             )
 
         with allure.step("Validate full schema of result"):
@@ -231,7 +233,9 @@ class TestCountries:
                     paginate=True,
                 )
 
-            with allure.step("Validate CountryPopulationSchema and population >= 0 for every entry"):
+            with allure.step(
+                "Validate CountryPopulationSchema and population >= 0 for every entry"
+            ):
                 logger.info("Validating population across %d countries", len(results))
                 failures = []
                 for entry in results:
@@ -242,7 +246,8 @@ class TestCountries:
                         continue
                     if validated.population < 0:
                         failures.append(
-                            f"'{validated.name_common}' has invalid population: {validated.population}"
+                            f"'{validated.name_common}' has invalid "
+                            f"population: {validated.population}"
                         )
                 assert not failures, (
                     f"{len(failures)} validation failure(s):\n" + "\n".join(failures)
@@ -277,7 +282,9 @@ class TestCountries:
                 validation.
         """
         try:
-            with allure.step(f"GET /names.common/{entity['name']} - resolve canonical name and region"):
+            with allure.step(
+                f"GET /names.common/{entity['name']} - resolve canonical name and region"
+            ):
                 name_results = api_client_fixture.get_objects(f"/names.common/{entity['name']}")
                 validated = CountrySchema.from_dict(name_results[0])
                 common_name = validated.name.common
@@ -333,7 +340,8 @@ class TestCountries:
                     len(results),
                 )
                 assert results == [], (
-                    f"Expected no results for non-existent country '{invalid_name}', got {len(results)}"
+                    f"Expected no results for non-existent country "
+                    f"'{invalid_name}', got {len(results)}"
                 )
         except AssertionError as exc:
             logger.error("test_nonexistent_country_returns_empty failed: %s", exc)

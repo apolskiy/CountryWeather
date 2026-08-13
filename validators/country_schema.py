@@ -111,7 +111,10 @@ class CountrySchema:
             KeyError: If any required field is absent from *data*, from the
                 ``codes`` sub-object, or from a nested capital entry.
         """
-        required = ("names", "capitals", "population", "currencies", "languages", "region", "codes", "flag")
+        required = (
+            "names", "capitals", "population", "currencies",
+            "languages", "region", "codes", "flag",
+        )
         for field in required:
             if field not in data:
                 raise KeyError(f"Missing mandatory schema field: '{field}'")

@@ -151,7 +151,8 @@ class ApiClient:
 
             elapsed = time.perf_counter() - start
             assert elapsed <= self._max_response_time, (
-                f"Response time {elapsed:.3f}s exceeded threshold of {self._max_response_time}s for {url}"
+                f"Response time {elapsed:.3f}s exceeded threshold of "
+                f"{self._max_response_time}s for {url}"
             )
             response.raise_for_status()
             return response

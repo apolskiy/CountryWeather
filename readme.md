@@ -4,7 +4,7 @@ Aleksandr Polskiy
 
 A robust Quality Engineering framework designed for testing UCaaS/CCaaS-style API architectures. Features automated schema enforcement, data-driven test generation, and detailed Allure reporting.
 
-> **Documentation status:** describes **v1.1.0**, reviewed 2026-08-10.
+> **Documentation status:** describes **v1.2.0**, reviewed 2026-08-13.
 > Each section below carries the release and date its content last changed, so a
 > reader arriving at a later version can see at a glance which parts moved. This
 > file always describes the *current* release; release-to-release history lives
@@ -88,7 +88,7 @@ The REST Countries API (v5) requires an API key, which the client reads from the
 
 ## 3. Running the Suite
 
-<sub>v1.0.0 &middot; 2026-08-10</sub>
+<sub>v1.2.0 &middot; 2026-08-13</sub>
 
 ```bash
 pytest tests/                 # full suite (countries + weather)
@@ -103,6 +103,7 @@ the identical command. This is the single source of truth for the pytest flags
 and the artifact directories.
 
 ```bash
+make lint                              # pylint over every tracked .py file, gated at 10.00/10
 make test                              # clean artifacts, then run the full suite
 make clean                             # remove test_results, allure-results, allure-report, .pytest_cache
 make test PYTEST_ARGS="--env=weather"  # forward extra flags to pytest
@@ -111,6 +112,11 @@ make test PYTEST_ARGS="--env=weather"  # forward extra flags to pytest
 `make test` runs `clean` first, so each run starts from a fresh set of artifact
 directories. The `PYTEST_ARGS` variable forwards any additional pytest flags
 (for example `-v` or `--env=<suite>`) without editing the recipe.
+
+`make lint` is the same command CI runs, and it needs no API key and spends no
+quota - so it is the cheap check to run before pushing. The file list comes from
+`git ls-files '*.py'` rather than a list in the recipe, so a new module is
+covered the moment it is tracked.
 
 > The file was originally generated as `MakeFIle` and has been corrected to
 > `Makefile`. The exact name matters: GNU make only auto-discovers `GNUmakefile`,
@@ -161,13 +167,23 @@ cross-cutting concerns and keeps test files focused on functional assertions.
 
 ## 6. CI/CD Pipeline
 
-<sub>v1.1.0 &middot; 2026-08-10</sub>
+<sub>v1.2.0 &middot; 2026-08-13</sub>
 
 Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
+Two jobs: `lint`, then `test`, which declares `needs: lint`.
 
-* **Execution**: The workflow invokes `make test`, so CI runs the exact same
-  command as a local run. The workflow forwards `-v` (and `--env=<suite>` when a
-  manual `workflow_dispatch` run selects a single suite) via `PYTEST_ARGS`.
+* **Execution**: The workflow invokes `make lint` and `make test`, so CI runs the
+  exact same commands as a local run. The workflow forwards `-v` (and
+  `--env=<suite>` when a manual `workflow_dispatch` run selects a single suite)
+  via `PYTEST_ARGS`.
+* **Static analysis gates the suite**: `make lint` runs `pylint --fail-under=10`
+  over every tracked `.py` file, and the test job does not start unless it
+  passes. The ordering is the quota argument again: the linter needs no API key
+  and spends nothing, so a failure there costs seconds, whereas running the
+  suite first would spend capped monthly requests to learn something static
+  analysis already knew. `--fail-under=10` rather than a softer floor, because a
+  score permitted to drift is not a gate - it never fails a build, it just gets
+  quietly worse.
 * **Triggered only by changes that can alter the result**: the workflow
   originally ran on *every* push and pull request to any branch, which meant a
   commit touching nothing but Markdown still ran the full suite against the live
@@ -197,12 +213,15 @@ Configured for GitHub Actions (`.github/workflows/ci.yml`) on `ubuntu-latest`.
 
 ## 7. Engineering Principles
 
-<sub>v1.0.0 &middot; 2026-08-10</sub>
+<sub>v1.2.0 &middot; 2026-08-13</sub>
 
 * **Isolation**: Function-scoped fixtures give each test its own client instance. The suite runs
   serially by design (see §5) rather than under pytest-xdist, so the one piece of shared session-wide
   state - the request-pacing clock - stays correct without cross-process coordination.
-* **Governance**: Code generation is governed by local AI rules files to ensure Pylint/type-hinting
-  compliance and Google-style docstrings.
+* **Governance**: Code generation is governed by local AI rules files in `.claude/rules/` -
+  `framework-rules.md` (architectural constraints), `testing-standards.md` (test authoring), and
+  `code-style.md` (naming, typing, layout) - to ensure Pylint/type-hinting compliance and
+  Google-style docstrings. Those rules are stated for a generator to follow; the CI lint gate (§6)
+  is what makes them binding, since a convention nothing checks is a preference.
 * **Integrity**: Latency thresholds are enforced as code; infrastructure flakiness is treated as a
   risk to be managed (bounded timeout + retry), not a test to be silenced.

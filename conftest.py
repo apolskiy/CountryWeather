@@ -70,7 +70,12 @@ def pytest_metadata(metadata: dict) -> None:
     metadata.update(_collect_env_metadata())
 
 
-def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+# pytest matches hook parameters by name, so neither argument can be renamed or
+# dropped even though the properties file is built from _collect_env_metadata()
+# rather than from the session.
+def pytest_sessionfinish(  # pylint: disable=unused-argument
+    session: pytest.Session, exitstatus: int
+) -> None:
     """Write an ``environment.properties`` file to the allure-results directory.
 
     Creates ``allure-results/`` if it does not yet exist, then serialises all
@@ -218,7 +223,7 @@ def _env_configs() -> dict:
         dict: The complete parsed YAML structure keyed by environment name
         (``"countries"`` and ``"weather"``).
     """
-    with open(_CONFIG_PATH) as config_file:
+    with open(_CONFIG_PATH, encoding="utf-8") as config_file:
         return yaml.safe_load(config_file)
 
 

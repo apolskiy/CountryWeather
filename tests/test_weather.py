@@ -75,7 +75,10 @@ class TestWeather:
                 or coordinate-tolerance assertion does not hold.
         """
         try:
-            with allure.step(f"GET /forecast for {entity['city']} ({entity['latitude']}, {entity['longitude']})"):
+            with allure.step(
+                f"GET /forecast for {entity['city']} "
+                f"({entity['latitude']}, {entity['longitude']})"
+            ):
                 response = api_client_fixture.get("/forecast", params={
                     "latitude": entity["latitude"],
                     "longitude": entity["longitude"],
@@ -98,18 +101,25 @@ class TestWeather:
                     f"Latitude mismatch: requested {entity['latitude']}, got {validated.latitude}"
                 )
                 assert abs(validated.longitude - entity["longitude"]) < 1.0, (
-                    f"Longitude mismatch: requested {entity['longitude']}, got {validated.longitude}"
+                    f"Longitude mismatch: requested {entity['longitude']}, "
+                    f"got {validated.longitude}"
                 )
 
             with allure.step("Assert current weather values are within physically valid ranges"):
                 current = validated.current_weather
-                assert -90.0 <= current.temperature <= 60.0, f"Temperature out of range: {current.temperature}"
+                assert -90.0 <= current.temperature <= 60.0, (
+                    f"Temperature out of range: {current.temperature}"
+                )
                 assert current.windspeed >= 0.0, f"Negative windspeed: {current.windspeed}"
-                assert 0.0 <= current.winddirection <= 360.0, f"Wind direction out of range: {current.winddirection}"
+                assert 0.0 <= current.winddirection <= 360.0, (
+                    f"Wind direction out of range: {current.winddirection}"
+                )
                 assert current.is_day in (0, 1), f"is_day must be 0 or 1, got {current.is_day}"
                 assert current.interval > 0, f"Non-positive interval: {current.interval}"
         except AssertionError as exc:
-            logger.error("test_current_weather_by_coordinates failed for %s: %s", entity["city"], exc)
+            logger.error(
+                "test_current_weather_by_coordinates failed for %s: %s", entity["city"], exc
+            )
             raise
 
     @allure.story("Hourly Forecast by City - Schema, Temperature Range, and Entry Count")
@@ -139,7 +149,10 @@ class TestWeather:
                 not hold.
         """
         try:
-            with allure.step(f"GET /forecast for {entity['city']} ({entity['latitude']}, {entity['longitude']})"):
+            with allure.step(
+                f"GET /forecast for {entity['city']} "
+                f"({entity['latitude']}, {entity['longitude']})"
+            ):
                 response = api_client_fixture.get("/forecast", params={
                     "latitude": entity["latitude"],
                     "longitude": entity["longitude"],
@@ -159,7 +172,9 @@ class TestWeather:
                     len(validated.hourly.temperature_2m),
                 )
 
-            with allure.step("Assert current temperature is within valid range (-80 °C to 60 °C)"):
+            with allure.step(
+                "Assert current temperature is within valid range (-80 °C to 60 °C)"
+            ):
                 temp = validated.current_weather.temperature
                 assert -80.0 <= temp <= 60.0, (
                     f"Temperature {temp}°C out of range [-80, 60] for {entity['city']}"

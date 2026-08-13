@@ -1,10 +1,15 @@
-Ini, TOML
-[MASTER]
-ignore=tests/conftest.py
-
 [MESSAGES CONTROL]
-# Disable some strict conventions if necessary, but keep the documentation ones active
+# Documentation checks stay on: the framework rules require a docstring on every
+# module, class and function, and this is what enforces them.
 enable=C0114,C0115,C0116
 
 [FORMAT]
 max-line-length=100
+
+[DESIGN]
+# ApiClient holds one attribute per configuration key sourced from
+# config/environments.yaml (11 of them), and CountrySchema mirrors the fields of
+# a REST Countries v5 object (8). Both counts are dictated by an external
+# contract rather than by the class doing too much, so the default limit of 7 is
+# raised rather than worked around by grouping unrelated values into a bag.
+max-attributes=12

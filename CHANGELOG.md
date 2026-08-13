@@ -23,6 +23,79 @@ in the evening in one timezone still agrees with the commit that carries it.
 
 ---
 
+## v1.2.0 - 2026-08-13
+
+### Added
+
+- **Static analysis is now a gate rather than an aspiration.** `readme.md` and
+  `.claude/rules/framework-rules.md` both stated that code must pass Pylint, and
+  a `.pylintrc` sat in the repository root, but nothing ever ran it: no CI step,
+  no Make target. The suite scored **9.45/10** when finally measured.
+
+  CI gains a `lint` job running `make lint` (`pylint --fail-under=10` over every
+  tracked `.py` file), and the `test` job now declares `needs: lint`. The
+  ordering is this project's quota argument applied to itself - the linter needs
+  no API key and spends nothing, so failing there costs seconds, while running
+  the suite first would spend capped monthly requests to learn something static
+  analysis already knew. `--fail-under=10` rather than a softer floor, matching
+  PublicAP: a score allowed to drift is not a gate, because it never fails a
+  build, it just gets quietly worse.
+
+  The file list comes from `git ls-files '*.py'` rather than being written into
+  the recipe, for the same reason the trigger is a `paths-ignore` denylist - a
+  hand-maintained list silently stops covering a directory the day someone
+  forgets to add it. The Makefile owns the invocation, so `make lint` locally and
+  in CI are the same command, as with `make test`.
+
+- **`pylint==4.0.6`** pinned in `requirements.txt`, matching the version PublicAP
+  gates on. Kept in the single requirements file rather than split into a dev
+  set: the linter must import every third-party name the suite imports in order
+  to resolve them, so the two dependency sets are the same set plus one entry.
+
+### Fixed
+
+- **`.pylintrc` was never in effect.** Its first line was the stray text
+  `Ini, TOML` - a language label pasted in when the file was generated - which
+  left the file with no section header before its first key. Pylint reported
+  `F0011: error while parsing the configuration` and fell back to built-in
+  defaults for every run. Confirmed rather than assumed: a probe copy carrying
+  the same stray line and `max-line-length=40` failed to flag a 50-character
+  line. Nothing downstream had noticed because the only setting that could have
+  changed a result, `max-line-length=100`, happens to equal Pylint's own
+  default. The stray line is removed and the file now parses.
+
+- **`ignore=tests/conftest.py` removed.** It named a path that does not exist -
+  `conftest.py` lives at the repository root - so it excluded nothing even had
+  the file parsed. The root `conftest.py` is linted, and passes.
+
+- **Nineteen findings cleared to reach 10.00/10.** Seventeen lines exceeded the
+  declared 100-character limit (worst: 117 in `tests/test_weather.py`), wrapped
+  without changing behaviour. `conftest.py` opened `config/environments.yaml`
+  with no explicit encoding, which resolves to the platform default and would
+  misread a non-ASCII value on a Windows console - now pinned to UTF-8. The two
+  unused arguments in `pytest_sessionfinish` carry a scoped disable and a
+  comment, since pytest matches hook parameters by name and neither can be
+  renamed or dropped.
+
+- **`max-attributes` raised to 12,** with the reason recorded in `.pylintrc`.
+  `ApiClient` holds one attribute per configuration key from
+  `config/environments.yaml` (11) and `CountrySchema` mirrors the fields of a
+  REST Countries v5 object (8). Both counts are dictated by an external contract
+  rather than by a class doing too much, so the limit is raised deliberately
+  rather than evaded by bagging unrelated values into a dict.
+
+- **`.claude/rules/code-style.md` held the wrong content.** It was a
+  byte-for-byte copy of `testing-standards.md` - same title, same three sections
+  - so the repository declared three rules files and shipped two, with no code
+  style rules at all. It now documents the conventions the code actually
+  follows: naming, type annotations, docstring formatting, imports, layout, data
+  and failure handling, and comments. Every rule was derived by reading the
+  existing modules, and the two places where the code contradicts itself are
+  named as such - the validators still import `Dict`/`List` from `typing` where
+  the rest of the suite uses built-in generics.
+
+---
+
 ## v1.1.0 - 2026-08-10
 
 ### Changed

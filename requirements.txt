@@ -12,3 +12,8 @@ requests==2.32.5
 
 # Configuration parsing
 PyYAML==6.0.3
+
+# Static analysis. Kept in the single requirements file rather than a separate
+# dev set: the linter must import every third-party name the suite imports to
+# resolve them, so the two dependency sets are the same set plus one entry.
+pylint==4.0.6
