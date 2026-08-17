@@ -4,7 +4,7 @@ Aleksandr Polskiy
 
 A robust Quality Engineering framework designed for testing UCaaS/CCaaS-style API architectures. Features automated schema enforcement, data-driven test generation, and detailed Allure reporting.
 
-> **Documentation status:** describes **v1.2.0**, reviewed 2026-08-13.
+> **Documentation status:** describes **v1.3.0**, reviewed 2026-08-16.
 > Each section below carries the release and date its content last changed, so a
 > reader arriving at a later version can see at a glance which parts moved. This
 > file always describes the *current* release; release-to-release history lives
@@ -211,7 +211,41 @@ Two jobs: `lint`, then `test`, which declares `needs: lint`.
 * **Robustness**: Artifact persistence on failure (`if: always()`) captures JUnit/Allure reports for
   debug review even when assertions fail.
 
-## 7. Engineering Principles
+## 7. Test Identity
+
+<sub>v1.3.0 &middot; 2026-08-16</sub>
+
+Every test carries an assigned, stable identifier:
+
+```python
+@pytest.mark.test_id("CWA_10001")
+@allure.story("Country by Name - Schema and Data Integrity")
+def test_country_by_name(self, api_client_fixture: ApiClient, entity: dict) -> None:
+```
+
+IDs run from `CWA_10001` and are **never reused** - deleting a test retires its
+number rather than freeing it. The suite currently occupies `CWA_10001` to
+`CWA_10009`; the next free identifier is `CWA_10010`.
+
+The identifier exists because **a test's name is not a stable identity**. Any
+store keyed on the name forks a test's history the moment it is renamed, turning
+one test with a long record into two with short ones - and doing so silently,
+since both halves still look like valid tests. Naming is supposed to be free to
+improve, and this is what makes it free.
+
+`conftest.py` republishes the marker into both report formats at collection
+time, in `_publish_test_ids`: as an Allure label and as a JUnit `<property>`.
+Collection time rather than a fixture, so the label is attached before any
+reporter starts building a result and cannot be lost to fixture ordering. The
+marker is authored once and lands wherever it is needed.
+
+The consumer is
+[PortfolioTestInsights](https://github.com/apolskiy/PortfolioTestInsights),
+which keeps this suite's results past GitHub's 90-day artifact retention. It
+keys on `COALESCE(test_id, test_uid)`, so history recorded before the IDs
+existed still stitches to history recorded after.
+
+## 8. Engineering Principles
 
 <sub>v1.2.0 &middot; 2026-08-13</sub>
 

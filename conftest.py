@@ -20,6 +20,7 @@ import platform
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 import yaml
 
@@ -173,6 +174,37 @@ def pytest_configure(config: pytest.Config) -> None:
     """
     config.addinivalue_line("markers", "countries: tests targeting the REST Countries API")
     config.addinivalue_line("markers", "weather: tests targeting the Open-Meteo Weather API")
+    config.addinivalue_line("markers", "test_id(identifier): assigned stable test identifier")
+
+
+def _publish_test_ids(items: list[pytest.Item]) -> None:
+    """Republish each test's assigned ID into every report format this suite emits.
+
+    The ID is authored once as ``@pytest.mark.test_id("CWA_10001")`` and has to
+    reach two places that do not talk to each other: an Allure label, and a
+    JUnit ``<property>``. Doing that here rather than in a fixture means the
+    label is attached at collection time, before any reporter has started
+    building a result, so it cannot be lost to fixture ordering.
+
+    The ID exists because a test's name is not a stable identity. Renaming a
+    test forks its history in any store keyed on the name, which silently turns
+    one test with a long record into two with short ones. See
+    PortfolioTestInsights/DESIGN.md section 7.
+
+    Args:
+        items (list[pytest.Item]): The full list of collected test items,
+            annotated in-place. Items carrying no marker are left untouched.
+
+    Returns:
+        None
+    """
+    for item in items:
+        marker = item.get_closest_marker("test_id")
+        if marker is None or not marker.args:
+            continue
+        test_id = str(marker.args[0])
+        item.user_properties.append(("test_id", test_id))
+        item.add_marker(allure.label("test_id", test_id))
 
 
 def pytest_collection_modifyitems(
@@ -193,6 +225,9 @@ def pytest_collection_modifyitems(
     Returns:
         None
     """
+    # Published before the env filter, which returns early when --env is absent.
+    _publish_test_ids(items)
+
     env_flag = config.getoption("--env") or None
     if env_flag is None:
         return

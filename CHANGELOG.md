@@ -23,6 +23,44 @@ in the evening in one timezone still agrees with the commit that carries it.
 
 ---
 
+## v1.3.0 - 2026-08-16
+
+### Added
+
+- **Every test now carries an assigned, stable identifier.** Nine tests are
+  marked `CWA_10001` through `CWA_10009` via `@pytest.mark.test_id(...)`; the
+  next free number is `CWA_10010`, and numbers are never reused.
+
+  The identifier exists because a test's name is not a stable identity. Any
+  store keyed on the name forks a test's history the moment it is renamed -
+  silently, because both halves still look like valid tests, and the only
+  symptom is one long record quietly becoming two short ones. The suite's names
+  should stay free to improve; this is what makes that free.
+
+  `conftest.py` republishes the marker at collection time in
+  `_publish_test_ids`, as both an Allure label and a JUnit `<property>`, so the
+  marker is authored once and reaches two reporters that do not talk to each
+  other. Collection time rather than a fixture, deliberately: the label is
+  attached before any reporter begins building a result, so it cannot be lost to
+  fixture ordering. Verified end to end - a `--env=weather` run produced ten
+  Allure results and ten JUnit properties, all carrying the ID, and
+  [PortfolioTestInsights](https://github.com/apolskiy/PortfolioTestInsights)
+  read it back from both formats.
+
+- **`test_id` registered as a marker** in `pytest.ini` and in
+  `pytest_configure`. Required rather than cosmetic: this suite runs under
+  `--strict-markers`, so an unregistered marker is an error, not a warning.
+
+### Notes
+
+- No test was renamed and no behaviour changed. The diff is decorator
+  insertions plus the conftest hook.
+- The identifier is additive for history: the collector keys on
+  `COALESCE(test_id, test_uid)`, so results recorded before these IDs existed -
+  including artifacts now expired - still stitch to results recorded after.
+
+---
+
 ## v1.2.0 - 2026-08-13
 
 ### Added

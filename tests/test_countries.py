@@ -46,6 +46,7 @@ class TestCountries:
     a :mod:`validators.country_schema` schema class.
     """
 
+    @pytest.mark.test_id("CWA_10001")
     @allure.story("Country Lookup by Name - Schema and Count")
     def test_country_by_name(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify schema correctness and result count for name-based lookups.
@@ -82,6 +83,7 @@ class TestCountries:
             assert len(validated.capital) > 0
             assert validated.population > 0
 
+    @pytest.mark.test_id("CWA_10002")
     @allure.story("Country Lookup by Alpha Code - Schema Integrity")
     def test_country_by_alpha_code(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify schema integrity for alpha-code-based lookups.
@@ -119,6 +121,7 @@ class TestCountries:
             assert validated.name.common != ""
             assert validated.name.official != ""
 
+    @pytest.mark.test_id("CWA_10003")
     @allure.story("Country - Full Schema Validation")
     def test_country_full_schema(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify full schema correctness for an entity's name-lookup response.
@@ -167,6 +170,7 @@ class TestCountries:
             logger.error("test_country_full_schema failed for %s: %s", entity["name"], exc)
             raise
 
+    @pytest.mark.test_id("CWA_10004")
     @allure.story("Europe Region - Result Count Threshold")
     def test_europe_region_count(self, api_client_fixture: ApiClient) -> None:
         """Verify that ``/region/europe`` returns more than 40 countries.
@@ -203,6 +207,7 @@ class TestCountries:
             logger.error("test_europe_region_count failed: %s", exc)
             raise
 
+    @pytest.mark.test_id("CWA_10005")
     @allure.story("All Countries - Population Field Integrity")
     def test_all_population_check(self, api_client_fixture: ApiClient) -> None:
         """Verify that every country reports a non-negative population.
@@ -256,6 +261,7 @@ class TestCountries:
             logger.error("test_all_population_check failed: %s", exc)
             raise
 
+    @pytest.mark.test_id("CWA_10006")
     @allure.story("Cross-Reference - Country Present in Its Own Region Results")
     def test_country_present_in_region(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify that an entity's common name appears in its own region's result set.
@@ -307,6 +313,7 @@ class TestCountries:
             logger.error("test_country_present_in_region failed for %s: %s", entity["name"], exc)
             raise
 
+    @pytest.mark.test_id("CWA_10007")
     @allure.story("Negative - Non-existent Country Name Returns an Empty Result Set")
     def test_nonexistent_country_returns_empty(self, api_client_fixture: ApiClient) -> None:
         """Verify that a lookup for a non-existent country name yields no results.

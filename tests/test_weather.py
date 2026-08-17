@@ -48,6 +48,7 @@ class TestWeather:
     both the ``current_weather`` and ``hourly`` response blocks.
     """
 
+    @pytest.mark.test_id("CWA_10008")
     @allure.story("Current Weather by Coordinates - Schema and Data Integrity")
     def test_current_weather_by_coordinates(
         self, api_client_fixture: ApiClient, entity: dict
@@ -122,6 +123,7 @@ class TestWeather:
             )
             raise
 
+    @pytest.mark.test_id("CWA_10009")
     @allure.story("Hourly Forecast by City - Schema, Temperature Range, and Entry Count")
     def test_forecast_by_city(self, api_client_fixture: ApiClient, entity: dict) -> None:
         """Verify schema correctness and forecast integrity for city-based hourly lookups.
