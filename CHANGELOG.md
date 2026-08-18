@@ -23,6 +23,29 @@ in the evening in one timezone still agrees with the commit that carries it.
 
 ---
 
+## v1.3.1 - 2026-08-18
+
+### Fixed
+
+- **§7 described PortfolioTestInsights' stitching rule as `COALESCE(test_id,
+  test_uid)`.** That was accurate when written and has since been corrected
+  upstream, because the obvious implementation is the wrong one: `COALESCE`
+  splits each test in two at the moment assigned IDs arrive - every earlier row
+  keyed by uid, every later row keyed by ID - turning one long history into two
+  short ones. It counted PublicAP's 36 tests as 72 and VM's 140 as 280 before it
+  was caught, which is the precise failure these IDs were introduced to prevent.
+
+  [PortfolioTestInsights](https://github.com/apolskiy/PortfolioTestInsights) now
+  propagates an ID observed anywhere for a test onto every row for that test,
+  including rows recorded before the ID existed. §7 says so, and says what it is
+  not, since the wrong version is the one a reader would otherwise assume.
+
+  The v1.3.0 entry below is left as written. It recorded what was true on
+  2026-08-16 and a changelog that edits its own history stops being evidence of
+  anything.
+
+---
+
 ## v1.3.0 - 2026-08-16
 
 ### Added

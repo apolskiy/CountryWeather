@@ -4,7 +4,7 @@ Aleksandr Polskiy
 
 A robust Quality Engineering framework designed for testing UCaaS/CCaaS-style API architectures. Features automated schema enforcement, data-driven test generation, and detailed Allure reporting.
 
-> **Documentation status:** describes **v1.3.0**, reviewed 2026-08-16.
+> **Documentation status:** describes **v1.3.1**, reviewed 2026-08-18.
 > Each section below carries the release and date its content last changed, so a
 > reader arriving at a later version can see at a glance which parts moved. This
 > file always describes the *current* release; release-to-release history lives
@@ -213,7 +213,7 @@ Two jobs: `lint`, then `test`, which declares `needs: lint`.
 
 ## 7. Test Identity
 
-<sub>v1.3.0 &middot; 2026-08-16</sub>
+<sub>v1.3.1 &middot; 2026-08-18</sub>
 
 Every test carries an assigned, stable identifier:
 
@@ -241,9 +241,16 @@ marker is authored once and lands wherever it is needed.
 
 The consumer is
 [PortfolioTestInsights](https://github.com/apolskiy/PortfolioTestInsights),
-which keeps this suite's results past GitHub's 90-day artifact retention. It
-keys on `COALESCE(test_id, test_uid)`, so history recorded before the IDs
-existed still stitches to history recorded after.
+which keeps this suite's results past GitHub's 90-day artifact retention. An ID
+observed anywhere for a test becomes that test's identity **everywhere**,
+including on rows recorded before the ID existed, so history from before the
+scheme stitches to history from after.
+
+Worth stating what that is not, because the obvious implementation is wrong and
+was tried first. Keying on `COALESCE(test_id, test_uid)` splits each test in two
+at the moment IDs arrive - every earlier row keyed by uid, every later row keyed
+by ID - producing two short histories where there was one long one, which is the
+precise failure the IDs exist to prevent.
 
 ## 8. Engineering Principles
 
